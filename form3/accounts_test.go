@@ -67,3 +67,30 @@ func TestAccounts_Fetch(t *testing.T) {
 		assert.NotNil(t, fetchedAccount)
 	})
 }
+
+func TestAccounts_Delete(t *testing.T) {
+
+	t.Run("deletes account with valid data", func(*testing.T) {
+		client := NewClient()
+		context := context.Background()
+
+		account := &Account{
+			Data: &AccountData{
+				ID:             uuid.New().String(),
+				OrganisationID: uuid.New().String(),
+				Type:           "accounts",
+				Attributes: &AccountAttributes{
+					Country: "GB",
+					Name:    []string{"John Doe"},
+				},
+			},
+		}
+
+		account, _ = client.Accounts.Create(context, account)
+		error := client.Accounts.Delete(context, account.Data.ID, account.Data.Version)
+		fetchedAccount, _ := client.Accounts.Fetch(context, account.Data.ID)
+
+		assert.Nil(t, error)
+		assert.Nil(t, fetchedAccount)
+	})
+}

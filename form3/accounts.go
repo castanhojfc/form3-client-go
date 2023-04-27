@@ -82,6 +82,22 @@ func (s *AccountService) Fetch(ctx context.Context, accountId string) (*Account,
 	return account, error
 }
 
+func (s *AccountService) Delete(ctx context.Context, accountId string, version int64) error {
+	request, error := s.client.NewRequest("DELETE", fmt.Sprintf("/v1/organisation/accounts/%s/?version=%d", accountId, version), nil)
+
+	if error != nil {
+		return error
+	}
+
+	_, error = s.client.Do(ctx, request, nil)
+
+	if error != nil {
+		return error
+	}
+
+	return error
+}
+
 type AccountFetchErr struct {
 	StatusCode int
 	Message    string
