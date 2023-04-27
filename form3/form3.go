@@ -66,12 +66,8 @@ func newBuffer(body interface{}) io.ReadWriter {
 	return buffer
 }
 
-func (c *Client) Do(ctx context.Context, request *http.Request, body interface{}) (*http.Response, error) {
+func (c *Client) Do(ctx context.Context, request *http.Request, resource interface{}) (*http.Response, error) {
 	response, error := c.httpClient.Do(request)
-
-	if error != nil {
-		return nil, error
-	}
 
 	if error != nil {
 		return nil, error
@@ -79,7 +75,7 @@ func (c *Client) Do(ctx context.Context, request *http.Request, body interface{}
 
 	defer response.Body.Close()
 
-	error = json.NewDecoder(response.Body).Decode(body)
+	error = json.NewDecoder(response.Body).Decode(resource)
 
 	return response, error
 }

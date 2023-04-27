@@ -40,4 +40,30 @@ func TestAccounts_Create(t *testing.T) {
 		assert.Nil(t, error)
 		assert.NotNil(t, account)
 	})
+
+}
+func TestAccounts_Fetch(t *testing.T) {
+
+	t.Run("fetches account with valid data", func(*testing.T) {
+		client := NewClient()
+		context := context.Background()
+
+		account := &Account{
+			Data: &AccountData{
+				ID:             uuid.New().String(),
+				OrganisationID: uuid.New().String(),
+				Type:           "accounts",
+				Attributes: &AccountAttributes{
+					Country: "GB",
+					Name:    []string{"John Doe"},
+				},
+			},
+		}
+
+		account, _ = client.Accounts.Create(context, account)
+		fetchedAccount, error := client.Accounts.Fetch(context, account.Data.ID)
+
+		assert.Nil(t, error)
+		assert.NotNil(t, fetchedAccount)
+	})
 }

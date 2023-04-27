@@ -2,6 +2,7 @@ package form3
 
 import (
 	"context"
+	"fmt"
 )
 
 type AccountService struct {
@@ -47,6 +48,23 @@ func (s *AccountService) Create(ctx context.Context, account *Account) (*Account
 		return &Account{}, error
 	}
 
+	_, error = s.client.Do(ctx, request, account)
+
+	if error != nil {
+		return &Account{}, error
+	}
+
+	return account, error
+}
+
+func (s *AccountService) Fetch(ctx context.Context, accountId string) (*Account, error) {
+	request, error := s.client.NewRequest("GET", fmt.Sprintf("/v1/organisation/accounts/%s", accountId), nil)
+
+	if error != nil {
+		return &Account{}, error
+	}
+
+	account := &Account{}
 	_, error = s.client.Do(ctx, request, account)
 
 	if error != nil {
