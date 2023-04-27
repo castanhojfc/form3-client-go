@@ -75,7 +75,9 @@ func (c *Client) Do(ctx context.Context, request *http.Request, resource interfa
 
 	defer response.Body.Close()
 
-	error = json.NewDecoder(response.Body).Decode(resource)
+	if resource != nil {
+		error = json.NewDecoder(response.Body).Decode(resource)
+	}
 
 	return response, error
 }

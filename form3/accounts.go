@@ -3,6 +3,7 @@ package form3
 import (
 	"context"
 	"fmt"
+	"net/http"
 )
 
 type AccountService struct {
@@ -18,7 +19,7 @@ type AccountData struct {
 	ID             string             `json:"id,omitempty"`
 	OrganisationID string             `json:"organisation_id,omitempty"`
 	Type           string             `json:"type,omitempty"`
-	Version        *int64             `json:"version,omitempty"`
+	Version        int64              `json:"version,omitempty"`
 	CreatedOn      string             `json:"created_on,omitempty"`
 }
 
@@ -36,8 +37,8 @@ type AccountAttributes struct {
 	JointAccount            bool     `json:"joint_account,omitempty"`
 	Name                    []string `json:"name,omitempty"`
 	SecondaryIdentification string   `json:"secondary_identification,omitempty"`
-	Status                  *string  `json:"status,omitempty"`
-	Switched                *bool    `json:"switched,omitempty"`
+	Status                  string   `json:"status,omitempty"`
+	Switched                bool     `json:"switched,omitempty"`
 	CustomerID              string   `json:"customer_id,omitempty"`
 }
 
@@ -45,13 +46,13 @@ func (s *AccountService) Create(ctx context.Context, account *Account) (*Account
 	request, error := s.client.NewRequest("POST", "/v1/organisation/accounts", account)
 
 	if error != nil {
-		return &Account{}, error
+		return nil, error
 	}
 
 	_, error = s.client.Do(ctx, request, account)
 
 	if error != nil {
-		return &Account{}, error
+		return nil, error
 	}
 
 	return account, error
@@ -61,15 +62,31 @@ func (s *AccountService) Fetch(ctx context.Context, accountId string) (*Account,
 	request, error := s.client.NewRequest("GET", fmt.Sprintf("/v1/organisation/accounts/%s", accountId), nil)
 
 	if error != nil {
-		return &Account{}, error
+		return nil, error
 	}
 
 	account := &Account{}
-	_, error = s.client.Do(ctx, request, account)
+	response, error := s.client.Do(ctx, request, account)
 
 	if error != nil {
-		return &Account{}, error
+		return nil, error
+	}
+
+	if response.StatusCode == http.StatusNotFound {
+		return nil, AccountFetchErr{
+			Message:    "The account was not found",
+			StatusCode: response.StatusCode,
+		}
 	}
 
 	return account, error
+}
+
+type AccountFetchErr struct {
+	StatusCode int
+	Message    string
+}
+
+func (e AccountFetchErr) Error() string {
+	return fmt.Sprintf("failed to fetch account: %s with statuscode: %d", e.Message, e.StatusCode)
 }
