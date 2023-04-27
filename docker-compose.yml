@@ -1,6 +1,13 @@
 version: '3'
 
 services:
+  form3-client-go:
+    build: .
+    env_file: .env
+    depends_on:
+      - accountapi
+    command: ["go", "test", "./form3", "-v"]
+
   accountapi:
     image: form3tech/interview-accountapi:v1.0.0-46-gb3b6c766
     restart: on-failure
