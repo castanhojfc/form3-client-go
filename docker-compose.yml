@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  form3-client-go:
+  client:
     build: .
     env_file: .env
     depends_on:

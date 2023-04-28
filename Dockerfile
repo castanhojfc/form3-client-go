@@ -1,7 +1,7 @@
 FROM golang:1.20
 
-RUN mkdir /form3-client-go
+RUN mkdir /client
 
-ADD . /form3-client-go
+ADD . /client
 
-WORKDIR /form3-client-go
+WORKDIR /client
