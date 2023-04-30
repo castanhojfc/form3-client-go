@@ -1,3 +1,5 @@
+// +build unit
+
 package form3
 
 import (
@@ -8,6 +10,7 @@ import (
 
 func TestClient(t *testing.T) {
 	t.Run("can create client with API url", func(*testing.T) {
+		t.Parallel()
 		client := NewClient()
 
 		assert.NotNil(t, client)

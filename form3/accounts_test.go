@@ -1,3 +1,5 @@
+// +build unit
+
 package form3
 
 import (
@@ -10,6 +12,7 @@ import (
 
 func TestAccounts_Create(t *testing.T) {
 	t.Run("creates account with valid data", func(*testing.T) {
+		t.Parallel()
 		client := NewClient()
 		context := context.Background()
 
@@ -45,6 +48,7 @@ func TestAccounts_Create(t *testing.T) {
 func TestAccounts_Fetch(t *testing.T) {
 
 	t.Run("fetches account with valid data", func(*testing.T) {
+		t.Parallel()
 		client := NewClient()
 		context := context.Background()
 
@@ -71,6 +75,7 @@ func TestAccounts_Fetch(t *testing.T) {
 func TestAccounts_Delete(t *testing.T) {
 
 	t.Run("deletes account with valid data", func(*testing.T) {
+		t.Parallel()
 		client := NewClient()
 		context := context.Background()
 
