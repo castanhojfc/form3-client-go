@@ -2,7 +2,6 @@ package form3
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,7 +24,6 @@ type AccountData struct {
 	OrganisationID string             `json:"organisation_id,omitempty"`
 	Type           string             `json:"type,omitempty"`
 	Version        int64              `json:"version,omitempty"`
-	CreatedOn      string             `json:"created_on,omitempty"`
 }
 
 type AccountWith struct {
@@ -101,17 +99,28 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		var errorResponse ErrorResponse
-		error = json.NewDecoder(response.Body).Decode(&errorResponse)
+		if response.StatusCode == http.StatusBadRequest || response.StatusCode == http.StatusConflict {
+			var errorResponse ErrorResponse
+			error = json.NewDecoder(response.Body).Decode(&errorResponse)
 
-		if error != nil {
-			return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
+			if error != nil {
+				return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
+			}
+
+			return nil, fmt.Errorf("could not create the account: %s", errorResponse.ErrorMessage)
 		}
 
-		return nil, fmt.Errorf("could not create the account: %s", errorResponse.ErrorMessage)
+		dump, error := httputil.DumpResponse(response, true)
+
+		if error != nil {
+			return nil, fmt.Errorf("could not dump the response while unknown problem occurred")
+		}
+
+		return nil, fmt.Errorf("could not create the account, unknown problem occurred, response details: %s", string(dump))
 	}
 
-	error = json.NewDecoder(response.Body).Decode(account)
+	account = &Account{}
+	error = json.NewDecoder(response.Body).Decode(&account)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)
@@ -162,7 +171,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 	return account, error
 }
 
-func (s *AccountService) Delete(ctx context.Context, accountId string, version int64) error {
+func (s *AccountService) Delete(accountId string, version int64) error {
 	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.client.baseUrl, resourceUri, accountId, version)
 
 	request, error := http.NewRequest(http.MethodDelete, requestURL, nil)

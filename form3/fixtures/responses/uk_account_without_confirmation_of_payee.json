@@ -1,0 +1,24 @@
+{
+    "data": {
+        "attributes": {
+            "alternative_names": null,
+            "bank_id": "123456",
+            "bank_id_code": "GBDSC",
+            "base_currency": "GBP",
+            "bic": "EXMPLGB2XXX",
+            "country": "GB",
+            "name": [
+                "Samantha Holder"
+            ]
+        },
+        "created_on": "2023-05-01T22:56:29.142Z",
+        "id": "ad27e265-9605-4b4b-a0e5-3003ea9cc4dd",
+        "modified_on": "2023-05-01T22:56:29.142Z",
+        "organisation_id": "eb0bd6f5-c3f5-44b2-b677-acd23cdde73d",
+        "type": "accounts",
+        "version": 0
+    },
+    "links": {
+        "self": "/v1/organisation/accounts/ad27e265-9605-4b4b-a0e5-3003ea9cc4dd"
+    }
+}
