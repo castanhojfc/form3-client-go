@@ -1,3 +1,6 @@
+tidy:
+	go mod tidy
+
 format:
 	gofmt -s -w -l .
 
@@ -17,4 +20,4 @@ generate_report: coverage
 	go test ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
-check: format lint test
+check: tidy format lint test
