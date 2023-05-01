@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,27 +12,51 @@ import (
 )
 
 type Client struct {
-	baseURL    string
+	baseUrl    *url.URL
 	httpClient *http.Client
 
 	Accounts *AccountService
 }
 
-func NewClient() *Client {
+type Option func(c *Client)
+
+func NewClient(opts ...Option) (*Client, error) {
+	rawUrl := os.Getenv("FORM3_ACCOUNT_API_URL")
+	baseUrl, error := url.ParseRequestURI(rawUrl)
+
+	if error != nil {
+		return nil, fmt.Errorf("there was a problem parsing the URL: %w", error)
+	}
+
 	client := &Client{
-		baseURL:    os.Getenv("FORM3_ACCOUNT_API_URL"),
+		baseUrl:    baseUrl,
 		httpClient: http.DefaultClient,
+	}
+
+	for _, o := range opts {
+		o(client)
 	}
 
 	client.Accounts = &AccountService{client: client}
 
-	return client
+	return client, nil
+}
+
+func WithBaseUrl(url *url.URL) Option {
+	return func(c *Client) {
+		c.baseUrl = url
+	}
+}
+
+func WithHttpClient(httpClient *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = httpClient
+	}
 }
 
 func (c *Client) NewRequest(method, path string, body interface{}) (*http.Request, error) {
-	base, _ := url.Parse(c.baseURL)
 	reference, _ := url.Parse(path)
-	url := base.ResolveReference(reference)
+	url := c.baseUrl.ResolveReference(reference)
 	url.Scheme = "http"
 	buffer := newBuffer(body)
 	request, error := http.NewRequest(

@@ -1,11 +1,12 @@
-// +build unit
+//go:build unit
 
-package form3
+package form3_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/castanhojfc/form3-client-go/form3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,15 +14,15 @@ import (
 func TestAccounts_Create(t *testing.T) {
 	t.Run("creates account with valid data", func(*testing.T) {
 		t.Parallel()
-		client := NewClient()
+		client, _ := form3.NewClient()
 		context := context.Background()
 
-		account := &Account{
-			Data: &AccountData{
+		account := &form3.Account{
+			Data: &form3.AccountData{
 				ID:             uuid.New().String(),
 				OrganisationID: uuid.New().String(),
 				Type:           "accounts",
-				Attributes: &AccountAttributes{
+				Attributes: &form3.AccountAttributes{
 					Country:                 "GB",
 					BaseCurrency:            "GBP",
 					BankID:                  "400302",
@@ -49,15 +50,15 @@ func TestAccounts_Fetch(t *testing.T) {
 
 	t.Run("fetches account with valid data", func(*testing.T) {
 		t.Parallel()
-		client := NewClient()
+		client, _ := form3.NewClient()
 		context := context.Background()
 
-		account := &Account{
-			Data: &AccountData{
+		account := &form3.Account{
+			Data: &form3.AccountData{
 				ID:             uuid.New().String(),
 				OrganisationID: uuid.New().String(),
 				Type:           "accounts",
-				Attributes: &AccountAttributes{
+				Attributes: &form3.AccountAttributes{
 					Country: "GB",
 					Name:    []string{"John Doe"},
 				},
@@ -76,15 +77,15 @@ func TestAccounts_Delete(t *testing.T) {
 
 	t.Run("deletes account with valid data", func(*testing.T) {
 		t.Parallel()
-		client := NewClient()
+		client, _ := form3.NewClient()
 		context := context.Background()
 
-		account := &Account{
-			Data: &AccountData{
+		account := &form3.Account{
+			Data: &form3.AccountData{
 				ID:             uuid.New().String(),
 				OrganisationID: uuid.New().String(),
 				Type:           "accounts",
-				Attributes: &AccountAttributes{
+				Attributes: &form3.AccountAttributes{
 					Country: "GB",
 					Name:    []string{"John Doe"},
 				},
