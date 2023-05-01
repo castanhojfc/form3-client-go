@@ -1,10 +1,15 @@
 package form3
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 )
+
+const resourceUri string = "/v1/organisation/accounts"
 
 type AccountService struct {
 	client *Client
@@ -42,67 +47,130 @@ type AccountAttributes struct {
 	CustomerID              string   `json:"customer_id,omitempty"`
 }
 
-func (s *AccountService) Create(ctx context.Context, account *Account) (*Account, error) {
-	request, error := s.client.NewRequest("POST", "/v1/organisation/accounts", account)
+type ErrorResponse struct {
+	ErrorMessage string `json:"error_message,omitempty"`
+}
+
+func (s *AccountService) Create(account *Account) (*Account, error) {
+	requestURL := fmt.Sprintf("%s%s", s.client.baseUrl, resourceUri)
+
+	body, error := json.Marshal(&account)
 
 	if error != nil {
-		return nil, error
+		return nil, fmt.Errorf("there was a problem marshalling the request body: %w", error)
 	}
 
-	_, error = s.client.Do(ctx, request, account)
+	response, error := s.client.httpClient.Post(requestURL, "application/json", bytes.NewBuffer(body))
 
 	if error != nil {
-		return nil, error
+		return nil, fmt.Errorf("there was a problem performing the request: %w", error)
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusCreated {
+		var errorResponse ErrorResponse
+		error = json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		if error != nil {
+			return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
+		}
+
+		return nil, fmt.Errorf("could not create the account: %s", errorResponse.ErrorMessage)
+	}
+
+	error = json.NewDecoder(response.Body).Decode(account)
+
+	if error != nil {
+		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)
 	}
 
 	return account, error
 }
 
-func (s *AccountService) Fetch(ctx context.Context, accountId string) (*Account, error) {
-	request, error := s.client.NewRequest("GET", fmt.Sprintf("/v1/organisation/accounts/%s", accountId), nil)
+func (s *AccountService) Fetch(accountId string) (*Account, error) {
+	requestURL := fmt.Sprintf("%s%s/%s", s.client.baseUrl, resourceUri, accountId)
+
+	response, error := s.client.httpClient.Get(requestURL)
 
 	if error != nil {
-		return nil, error
+		return nil, fmt.Errorf("there was a problem performing the request: %w", error)
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusBadRequest {
+			var errorResponse ErrorResponse
+			error = json.NewDecoder(response.Body).Decode(&errorResponse)
+
+			if error != nil {
+				return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
+			}
+
+			return nil, fmt.Errorf("could not fetch the account: %s", errorResponse.ErrorMessage)
+		}
+
+		dump, error := httputil.DumpResponse(response, true)
+
+		if error != nil {
+			return nil, fmt.Errorf("could not dump the response while unknown problem occurred")
+		}
+
+		return nil, fmt.Errorf("could not fetch the account, unknown problem occurred, response details: %s", string(dump))
 	}
 
 	account := &Account{}
-	response, error := s.client.Do(ctx, request, account)
+	error = json.NewDecoder(response.Body).Decode(&account)
 
 	if error != nil {
-		return nil, error
-	}
-
-	if response.StatusCode == http.StatusNotFound {
-		return nil, AccountFetchErr{
-			Message:    "The account was not found",
-			StatusCode: response.StatusCode,
-		}
+		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)
 	}
 
 	return account, error
 }
 
 func (s *AccountService) Delete(ctx context.Context, accountId string, version int64) error {
-	request, error := s.client.NewRequest("DELETE", fmt.Sprintf("/v1/organisation/accounts/%s/?version=%d", accountId, version), nil)
+	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.client.baseUrl, resourceUri, accountId, version)
+
+	request, error := http.NewRequest(http.MethodDelete, requestURL, nil)
 
 	if error != nil {
-		return error
+		return fmt.Errorf("there was a problem creating the request: %w", error)
 	}
 
-	_, error = s.client.Do(ctx, request, nil)
+	response, error := s.client.httpClient.Do(request)
 
 	if error != nil {
-		return error
+		return fmt.Errorf("there was a problem performing the request: %w", error)
 	}
 
-	return error
-}
+	defer response.Body.Close()
 
-type AccountFetchErr struct {
-	StatusCode int
-	Message    string
-}
+	if response.StatusCode != http.StatusNoContent {
+		if response.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("the account with account id: %s and version: %d was not found", accountId, version)
+		}
 
-func (e AccountFetchErr) Error() string {
-	return fmt.Sprintf("failed to fetch account: %s with statuscode: %d", e.Message, e.StatusCode)
+		if response.StatusCode == http.StatusBadRequest {
+			var errorResponse ErrorResponse
+			error = json.NewDecoder(response.Body).Decode(&errorResponse)
+
+			if error != nil {
+				return fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
+			}
+
+			return fmt.Errorf("could not delete the account: %s", errorResponse.ErrorMessage)
+		}
+
+		dump, error := httputil.DumpResponse(response, true)
+
+		if error != nil {
+			return fmt.Errorf("could not dump the response while unknown problem occurred")
+		}
+
+		return fmt.Errorf("could not delete the account, unknown problem occurred, response details: %s", string(dump))
+	}
+
+	return nil
 }
