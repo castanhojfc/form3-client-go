@@ -28,23 +28,55 @@ type AccountData struct {
 	CreatedOn      string             `json:"created_on,omitempty"`
 }
 
+type AccountWith struct {
+	BankID     string `json:"bank_id,omitempty"`
+	BankIDCode string `json:"bank_id_code,omitempty"`
+}
+
+type SwitchedAccountDetails struct {
+	AccountNumber         string       `json:"account_number,omitempty"`
+	AccountNumberCode     string       `json:"account_number_code,omitempty"`
+	AccountWith           *AccountWith `json:"account_with,omitempty"`
+	SwitchedEffectiveDate string       `json:"switched_effective_date,omitempty"`
+	AccountType           string       `json:"account_type,omitempty"`
+}
+
+type UserDefinedData struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
 type AccountAttributes struct {
-	AccountClassification   string   `json:"account_classification,omitempty"`
-	AccountMatchingOptOut   bool     `json:"account_matching_opt_out,omitempty"`
-	AccountNumber           string   `json:"account_number,omitempty"`
-	AlternativeNames        []string `json:"alternative_names,omitempty"`
-	BankID                  string   `json:"bank_id,omitempty"`
-	BankIDCode              string   `json:"bank_id_code,omitempty"`
-	BaseCurrency            string   `json:"base_currency,omitempty"`
-	Bic                     string   `json:"bic,omitempty"`
-	Country                 string   `json:"country,omitempty"`
-	Iban                    string   `json:"iban,omitempty"`
-	JointAccount            bool     `json:"joint_account,omitempty"`
-	Name                    []string `json:"name,omitempty"`
-	SecondaryIdentification string   `json:"secondary_identification,omitempty"`
-	Status                  string   `json:"status,omitempty"`
-	Switched                bool     `json:"switched,omitempty"`
-	CustomerID              string   `json:"customer_id,omitempty"`
+	BankID                  string                  `json:"bank_id,omitempty"`
+	BankIDCode              string                  `json:"bank_id_code,omitempty"`
+	Bic                     string                  `json:"bic,omitempty"`
+	Country                 string                  `json:"country,omitempty"`
+	AcceptanceQualifier     string                  `json:"acceptance_qualifier,omitempty"`
+	AccountClassification   string                  `json:"account_classification,omitempty"`
+	AccountNumber           string                  `json:"account_number,omitempty"`
+	AlternativeNames        []string                `json:"alternative_names,omitempty"`
+	BaseCurrency            string                  `json:"base_currency,omitempty"`
+	CustomerID              string                  `json:"customer_id,omitempty"`
+	Iban                    string                  `json:"iban,omitempty"`
+	JointAccount            bool                    `json:"joint_account,omitempty"`
+	Name                    []string                `json:"name,omitempty"`
+	NameMatchingStatus      string                  `json:"name_matching_status,omitempty"`
+	ReferenceMask           string                  `json:"reference_mask,omitempty"`
+	SecondaryIdentification string                  `json:"secondary_identification,omitempty"`
+	SwitchedAccountDetails  *SwitchedAccountDetails `json:"switched_account_details,omitempty"`
+	UserDefinedData         []*UserDefinedData      `json:"user_defined_data,omitempty"`
+	ValidationType          string                  `json:"validation_type,omitempty"`
+	Status                  string                  `json:"status,omitempty"`
+
+	// Deprecated
+	AccountMatchingOptOut       bool     `json:"account_matching_opt_out,omitempty"`
+	AlternativeBankAccountNames []string `json:"alternative_bank_account_names,omitempty"`
+	BankAccountName             string   `json:"bank_account_name,omitempty"`
+	FirstName                   string   `json:"first_name,omitempty"`
+	ProcessingService           string   `json:"processing_service,omitempty"`
+	Switched                    bool     `json:"switched,omitempty"`
+	Title                       string   `json:"title,omitempty"`
+	UserDefinedInformation      string   `json:"user_defined_information,omitempty"`
 }
 
 type ErrorResponse struct {
