@@ -66,16 +66,7 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		dump, error := httputil.DumpResponse(response, true)
-
-		if error != nil {
-			return nil, fmt.Errorf("could not create the account it was not possible dump the response")
-		}
-
-		return nil, OperationError{
-			Message:  "could not create the account",
-			Response: dump,
-		}
+		return handleUnsuccessfulOperation(response)
 	}
 
 	account = &Account{}
@@ -100,16 +91,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		dump, error := httputil.DumpResponse(response, true)
-
-		if error != nil {
-			return nil, fmt.Errorf("could not fetch the account it was not possible dump the response")
-		}
-
-		return nil, OperationError{
-			Message:  "could not fetch the account",
-			Response: dump,
-		}
+		return handleUnsuccessfulOperation(response)
 	}
 
 	account := &Account{}
@@ -140,17 +122,23 @@ func (s *AccountService) Delete(accountId string, version int64) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		dump, error := httputil.DumpResponse(response, true)
+		_, error = handleUnsuccessfulOperation(response)
 
-		if error != nil {
-			return fmt.Errorf("could not delete the account it was not possible dump the response")
-		}
-
-		return OperationError{
-			Message:  "could not delete the account",
-			Response: dump,
-		}
+		return error
 	}
 
 	return nil
+}
+
+func handleUnsuccessfulOperation(response *http.Response) (*Account, error) {
+	dump, error := httputil.DumpResponse(response, true)
+
+	if error != nil {
+		return nil, fmt.Errorf("it was not possible dump the response for an unsucessful operation: %w", error)
+	}
+
+	return nil, OperationError{
+		Message:  "could not perform operation",
+		Response: dump,
+	}
 }
