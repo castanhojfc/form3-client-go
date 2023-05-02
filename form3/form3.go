@@ -11,29 +11,42 @@ import (
 )
 
 type Client struct {
-	baseUrl    *url.URL
-	httpClient *http.Client
+	BaseUrl    *url.URL
+	HttpClient *http.Client
 
 	Accounts *AccountService
 }
 
 type Option func(c *Client)
 
-func NewClient(opts ...Option) (*Client, error) {
-	rawUrl := os.Getenv("FORM3_ACCOUNT_API_URL")
-	baseUrl, error := url.ParseRequestURI(rawUrl)
-
-	if error != nil {
-		return nil, fmt.Errorf("there was a problem parsing the URL: %w", error)
-	}
-
+func New(options ...Option) (*Client, error) {
 	client := &Client{
-		baseUrl:    baseUrl,
-		httpClient: http.DefaultClient,
+		BaseUrl:    nil,
+		HttpClient: http.DefaultClient,
 	}
 
-	for _, o := range opts {
-		o(client)
+	for _, option := range options {
+		option(client)
+	}
+
+	if client.BaseUrl == nil {
+		rawUrl := os.Getenv("FORM3_ACCOUNT_API_URL")
+
+		if rawUrl == "" {
+			return nil, fmt.Errorf("no base URL was provided, it should be set using environment variable or as an option")
+		}
+
+		parsedUrl, error := url.ParseRequestURI(rawUrl)
+
+		if error != nil {
+			return nil, fmt.Errorf("there was a problem parsing the URL: %w", error)
+		}
+
+		client.BaseUrl = parsedUrl
+	}
+
+	if client.BaseUrl.Scheme == "" || client.BaseUrl.Host == "" {
+		return nil, fmt.Errorf("it was not possible to extract a scheme and a host from the provided URL: %s", client.BaseUrl)
 	}
 
 	client.Accounts = &AccountService{client: client}
@@ -42,14 +55,14 @@ func NewClient(opts ...Option) (*Client, error) {
 }
 
 func WithBaseUrl(url *url.URL) Option {
-	return func(c *Client) {
-		c.baseUrl = url
+	return func(client *Client) {
+		client.BaseUrl = url
 	}
 }
 
 func WithHttpClient(httpClient *http.Client) Option {
-	return func(c *Client) {
-		c.httpClient = httpClient
+	return func(client *Client) {
+		client.HttpClient = httpClient
 	}
 }
 
@@ -70,7 +83,7 @@ func performRequest(c *Client, method string, requestURL string, body []byte) (*
 		request.Header.Set("Content-Type", "application/json")
 	}
 
-	response, error := c.httpClient.Do(request)
+	response, error := c.HttpClient.Do(request)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem performing the request: %w", error)

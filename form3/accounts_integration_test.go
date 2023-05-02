@@ -56,7 +56,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	suite.T().Parallel()
 
 	suite.T().Run("should create account when a valid account is provided", func(t *testing.T) {
-		client, _ := form3.NewClient()
+		client, _ := form3.New()
 
 		tests := []TestCase{
 			{
@@ -84,7 +84,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	})
 
 	suite.T().Run("should not create account when an account without required information is provided", func(*testing.T) {
-		client, _ := form3.NewClient()
+		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/account_missing_required_data.json")
 
@@ -96,7 +96,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	})
 
 	suite.T().Run("should not create account when an account was previously created", func(*testing.T) {
-		client, _ := form3.NewClient()
+		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 
@@ -112,7 +112,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 	suite.T().Parallel()
 
 	suite.T().Run("should fetch an existing account", func(*testing.T) {
-		client, _ := form3.NewClient()
+		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = uuid.New().String()
@@ -129,7 +129,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 	suite.T().Parallel()
 
 	suite.T().Run("should delete account when the account exists", func(*testing.T) {
-		client, _ := form3.NewClient()
+		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = uuid.New().String()

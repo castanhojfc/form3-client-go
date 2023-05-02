@@ -43,7 +43,7 @@ type AccountAttributes struct {
 }
 
 func (s *AccountService) Create(account *Account) (*Account, error) {
-	requestURL := fmt.Sprintf("%s%s", s.client.baseUrl, resourceUri)
+	requestURL := fmt.Sprintf("%s%s", s.client.BaseUrl, resourceUri)
 
 	body, error := marshal(account)
 
@@ -67,7 +67,7 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 }
 
 func (s *AccountService) Fetch(accountId string) (*Account, error) {
-	requestURL := fmt.Sprintf("%s%s/%s", s.client.baseUrl, resourceUri, accountId)
+	requestURL := fmt.Sprintf("%s%s/%s", s.client.BaseUrl, resourceUri, accountId)
 
 	response, error := performRequest(s.client, http.MethodGet, requestURL, nil)
 
@@ -85,7 +85,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 }
 
 func (s *AccountService) Delete(accountId string, version int64) error {
-	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.client.baseUrl, resourceUri, accountId, version)
+	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.client.BaseUrl, resourceUri, accountId, version)
 
 	response, error := performRequest(s.client, http.MethodDelete, requestURL, nil)
 
