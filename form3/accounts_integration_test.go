@@ -27,7 +27,13 @@ func TestForm3AccountsTestSuite(t *testing.T) {
 }
 
 func (suite *Form3AccountsTestSuite) SetupTest() {
-	dsn := "host=localhost user=interview_accountapi_user password=123 dbname=interview_accountapi port=5432 sslmode=disable"
+	host := os.Getenv("TEST_DATABASE_HOST")
+	user := os.Getenv("TEST_DATABASE_USERNAME")
+	password := os.Getenv("TEST_DATABASE_PASSWORD")
+	dbname := os.Getenv("TEST_DATABASE_NAME")
+	port := os.Getenv("TEST_DATABASE_PORT")
+	sslmode := os.Getenv("TEST_DATABASE_SSL_MODE")
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, dbname, port, sslmode)
 	database, error := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if error != nil {
@@ -101,27 +107,6 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	})
 }
 
-func accountFromJson(t *testing.T, fileName string) *form3.Account {
-	file, error := os.Open(fileName)
-
-	if error != nil {
-		t.Fatalf("failed to open fixture file: %v", error)
-	}
-
-	defer file.Close()
-
-	fileBytes, error := ioutil.ReadAll(file)
-
-	if error != nil {
-		t.Fatalf("failed to read fixture bytes: %v", error)
-	}
-
-	account := &form3.Account{}
-	json.Unmarshal(fileBytes, &account)
-
-	return account
-}
-
 func (suite *Form3AccountsTestSuite) Test_Fetch() {
 	suite.T().Parallel()
 
@@ -155,4 +140,25 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		assert.Nil(suite.T(), error)
 		assert.Nil(suite.T(), fetchedAccount)
 	})
+}
+
+func accountFromJson(t *testing.T, fileName string) *form3.Account {
+	file, error := os.Open(fileName)
+
+	if error != nil {
+		t.Fatalf("failed to open fixture file: %v", error)
+	}
+
+	defer file.Close()
+
+	fileBytes, error := ioutil.ReadAll(file)
+
+	if error != nil {
+		t.Fatalf("failed to read fixture bytes: %v", error)
+	}
+
+	account := &form3.Account{}
+	json.Unmarshal(fileBytes, &account)
+
+	return account
 }
