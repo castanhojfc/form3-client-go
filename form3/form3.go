@@ -79,7 +79,7 @@ func performRequest(c *Client, method string, requestURL string, body []byte) (*
 	return response, nil
 }
 
-func handleUnsuccessfulOperation(response *http.Response) error {
+func buildUnsuccessfulResponse(response *http.Response) error {
 	dump, error := httputil.DumpResponse(response, true)
 
 	if error != nil {

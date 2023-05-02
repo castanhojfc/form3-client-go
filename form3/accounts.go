@@ -60,7 +60,7 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		return nil, handleUnsuccessfulOperation(response)
+		return nil, buildUnsuccessfulResponse(response)
 	}
 
 	return unmarshal(response)
@@ -78,7 +78,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, handleUnsuccessfulOperation(response)
+		return nil, buildUnsuccessfulResponse(response)
 	}
 
 	return unmarshal(response)
@@ -96,7 +96,7 @@ func (s *AccountService) Delete(accountId string, version int64) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		return handleUnsuccessfulOperation(response)
+		return buildUnsuccessfulResponse(response)
 	}
 
 	return nil
