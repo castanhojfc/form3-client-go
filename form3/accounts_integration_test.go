@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/castanhojfc/form3-client-go/form3"
@@ -90,7 +91,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client.Accounts.Create(account)
 		account, error := client.Accounts.Create(account)
 
-		assert.Equal(suite.T(), fmt.Sprint(error), "could not create the account: validation failure list:\nvalidation failure list:\norganisation_id in body is required")
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "organisation_id in body is required"))
 		assert.Nil(suite.T(), account)
 	})
 
@@ -102,7 +103,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client.Accounts.Create(account)
 		account, error := client.Accounts.Create(account)
 
-		assert.Equal(suite.T(), fmt.Sprint(error), "could not create the account: Account cannot be created as it violates a duplicate constraint")
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "Account cannot be created as it violates a duplicate constraint"))
 		assert.Nil(suite.T(), account)
 	})
 }

@@ -66,24 +66,16 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		if response.StatusCode == http.StatusBadRequest || response.StatusCode == http.StatusConflict {
-			var errorResponse ErrorResponse
-			error = json.NewDecoder(response.Body).Decode(&errorResponse)
-
-			if error != nil {
-				return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
-			}
-
-			return nil, fmt.Errorf("could not create the account: %s", errorResponse.ErrorMessage)
-		}
-
 		dump, error := httputil.DumpResponse(response, true)
 
 		if error != nil {
-			return nil, fmt.Errorf("could not dump the response while unknown problem occurred")
+			return nil, fmt.Errorf("could not create the account it was not possible dump the response")
 		}
 
-		return nil, fmt.Errorf("could not create the account, unknown problem occurred, response details: %s", string(dump))
+		return nil, OperationError{
+			Message:  "could not create the account",
+			Response: dump,
+		}
 	}
 
 	account = &Account{}
@@ -108,24 +100,16 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusBadRequest {
-			var errorResponse ErrorResponse
-			error = json.NewDecoder(response.Body).Decode(&errorResponse)
-
-			if error != nil {
-				return nil, fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
-			}
-
-			return nil, fmt.Errorf("could not fetch the account: %s", errorResponse.ErrorMessage)
-		}
-
 		dump, error := httputil.DumpResponse(response, true)
 
 		if error != nil {
-			return nil, fmt.Errorf("could not dump the response while unknown problem occurred")
+			return nil, fmt.Errorf("could not fetch the account it was not possible dump the response")
 		}
 
-		return nil, fmt.Errorf("could not fetch the account, unknown problem occurred, response details: %s", string(dump))
+		return nil, OperationError{
+			Message:  "could not fetch the account",
+			Response: dump,
+		}
 	}
 
 	account := &Account{}
@@ -156,28 +140,16 @@ func (s *AccountService) Delete(accountId string, version int64) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		if response.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("the account with account id: %s and version: %d was not found", accountId, version)
-		}
-
-		if response.StatusCode == http.StatusBadRequest {
-			var errorResponse ErrorResponse
-			error = json.NewDecoder(response.Body).Decode(&errorResponse)
-
-			if error != nil {
-				return fmt.Errorf("there was a problem unmarshalling the error response body: %w", error)
-			}
-
-			return fmt.Errorf("could not delete the account: %s", errorResponse.ErrorMessage)
-		}
-
 		dump, error := httputil.DumpResponse(response, true)
 
 		if error != nil {
-			return fmt.Errorf("could not dump the response while unknown problem occurred")
+			return fmt.Errorf("could not delete the account it was not possible dump the response")
 		}
 
-		return fmt.Errorf("could not delete the account, unknown problem occurred, response details: %s", string(dump))
+		return OperationError{
+			Message:  "could not delete the account",
+			Response: dump,
+		}
 	}
 
 	return nil
