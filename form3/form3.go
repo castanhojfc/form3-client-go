@@ -1,8 +1,11 @@
 package form3
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 )
@@ -47,5 +50,44 @@ func WithBaseUrl(url *url.URL) Option {
 func WithHttpClient(httpClient *http.Client) Option {
 	return func(c *Client) {
 		c.httpClient = httpClient
+	}
+}
+
+func performRequest(c *Client, method string, requestURL string, body []byte) (*http.Response, error) {
+	var buffer io.ReadWriter
+
+	if body != nil {
+		buffer = bytes.NewBuffer(body)
+	}
+
+	request, error := http.NewRequest(method, requestURL, buffer)
+
+	if error != nil {
+		return nil, fmt.Errorf("there was a problem creating the request: %w", error)
+	}
+
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+
+	response, error := c.httpClient.Do(request)
+
+	if error != nil {
+		return nil, fmt.Errorf("there was a problem performing the request: %w", error)
+	}
+
+	return response, nil
+}
+
+func handleUnsuccessfulOperation(response *http.Response) error {
+	dump, error := httputil.DumpResponse(response, true)
+
+	if error != nil {
+		return fmt.Errorf("it was not possible dump the response for an unsucessful operation: %w", error)
+	}
+
+	return OperationError{
+		Message:  "could not perform operation",
+		Response: dump,
 	}
 }
