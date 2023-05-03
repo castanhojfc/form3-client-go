@@ -1,3 +1,88 @@
+# Hi there 👋 thank you for taking a look at my code!
+
+I'm Francisco Castanho and I am new to golang
+
+# How to run all tests
+
+```
+docker-compose up
+```
+
+Documentation using godocs is generated and available [here](http://localhost:6060/pkg/github.com/castanhojfc/form3-client-go/form3/)
+
+# How to use
+
+The base URL must be accessible. It should be configured in the environment variable `FORM3_ACCOUNT_API_URL` or as an option.
+
+## Import the package
+```
+import "github.com/castanhojfc/form3-client-go/form3"
+```
+
+## Create a client
+```
+client, error := form3.New()
+```
+
+## (Optional) Configure the client when creating a client
+```
+// It is not needed to provide all options
+url, _ := url.ParseRequestURI("http://asdf:8080")
+httpClient := &http.Client{}
+
+client, error := form3.New(
+  form3.WithBaseUrl(url), // If both the option is provided and the environment variable, the option is honored
+  form3.WithHttpClient(&http.Client{})
+)
+```
+
+## Create an account
+```
+account := &form3.Account{
+  Data: &form3.AccountData{
+    ID:             "47cf8708-3c26-4baa-b3d3-6365996e27c3",
+    OrganisationID: "afe81b33-210b-42a5-8d80-40e5adde721e",
+    Type:           "accounts",
+    Attributes: &form3.AccountAttributes{
+      Country:                 "GB",
+      BaseCurrency:            "GBP",
+      BankID:                  "400302",
+      BankIDCode:              "GBDSC",
+      Bic:                     "NWBKGB42",
+      Name:                    []string{"Samantha Holder"},
+      AlternativeNames:        []string{"Sam Holder"},
+      AccountClassification:   "Personal",
+      JointAccount:            false,
+      AccountMatchingOptOut:   false,
+      SecondaryIdentification: "A1B2C3D4",
+    },
+  },
+}
+
+account, error = client.Accounts.Create(account)
+```
+
+## Fetch an account
+```
+// Fetch takes the account id as an argument
+account, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-494552d11212")
+```
+
+## Delete an account
+```
+// Delete takes the account id and version as arguements
+client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
+```
+
+## Observations
+  - There is a makefile with a few useful commands available. Check it out! :partying_face:
+  - Documentation is available through godocs.
+  - Also added a continuous integration pipeline using GitHub Actions as a bonus.
+
+## Future work/Limitations
+ - More unit could have been written! I gave priority to integration tests.
+ - Could not make DumpRequest return an error to cover more logic using an integration test.
+
 # Form3 Take Home Exercise
 
 Engineers at Form3 build highly available distributed systems in a microservices environment. Our take home test is designed to evaluate real world activities that are involved with this role. We recognise that this may not be as mentally challenging and may take longer to implement than some algorithmic tests that are often seen in interview exercises. Our approach however helps ensure that you will be working with a team of engineers with the necessary practical skills for the role (as well as a diverse range of technical wizardry). 
