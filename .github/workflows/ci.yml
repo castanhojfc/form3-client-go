@@ -6,7 +6,7 @@ on:
 name: CI
 
 jobs:
-  test:
+  pipeline:
     env:
       FORM3_ACCOUNT_API_URL: 'http://accountapi:8080'
     strategy:
@@ -25,6 +25,15 @@ jobs:
 
     - name: Checkout code
       uses: actions/checkout@v2
+
+    - name: Tidy
+      shell: bash
+      run: |
+          go mod tidy
+          STATUS=$(git status --porcelain go.mod go.sum)
+          if [ ! -z "$STATUS" ]; then
+            exit 1
+          fi
 
     - name: Test
       run: go test -race -shuffle=on -parallel 16 -v ./... -tags=unit
