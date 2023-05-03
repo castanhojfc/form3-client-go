@@ -1,3 +1,8 @@
+// Package form3 provides access to Form3 API using a client which as access to resources.
+//
+// Allows a client to perform http requests.
+//
+// Each resource has access to a set of operations.
 package form3
 
 import (
@@ -11,15 +16,24 @@ import (
 	"os"
 )
 
+// Client is used to access API resourses.
 type Client struct {
-	BaseUrl    *url.URL
-	HttpClient *http.Client
+	BaseUrl    *url.URL     // API base URL, can be configured.
+	HttpClient *http.Client // Http client, can be configured.
 
-	Accounts *AccountService
+	Accounts *AccountService // Account Service, has access to operations.
 }
 
+// Option represents an option that can be externally configured.
 type Option func(c *Client)
 
+// New creates a new client.
+//
+// A set of options can be used to customize it.
+//
+// The base URL is configured using the FORM3_ACCOUNT_API_URL environment variable, if it is configured as an option, the option is honored.
+//
+// An error is returned if there is a problem parsing the base URL provided.
 func New(options ...Option) (*Client, error) {
 	client := &Client{
 		BaseUrl:    nil,
@@ -55,18 +69,23 @@ func New(options ...Option) (*Client, error) {
 	return client, nil
 }
 
+// WithBaseUrl allows the base URL to be configured externally.
 func WithBaseUrl(url *url.URL) Option {
 	return func(client *Client) {
 		client.BaseUrl = url
 	}
 }
 
+// WithHttpClient allows the http client to be configured externally.
 func WithHttpClient(httpClient *http.Client) Option {
 	return func(client *Client) {
 		client.HttpClient = httpClient
 	}
 }
 
+// PerformRequest uses a client to perform a http request to the API.
+//
+// An error is returned if there was any problem creating or performing the request.
 func PerformRequest(c *Client, method string, requestURL string, body []byte) (*http.Response, error) {
 	var buffer io.ReadWriter
 
@@ -93,6 +112,7 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 	return response, nil
 }
 
+// BuildUnsuccessfulResponse dumps the http response and creates an error.
 func BuildUnsuccessfulResponse(response *http.Response) error {
 	dump, _ := httputil.DumpResponse(response, true)
 

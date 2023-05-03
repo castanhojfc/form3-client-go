@@ -21,3 +21,6 @@ generate_report: coverage
 	go tool cover -html=coverage.out
 
 check: tidy format lint test
+
+generate_docs:
+	godoc -http :6060
