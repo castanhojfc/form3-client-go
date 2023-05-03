@@ -8,9 +8,11 @@ services:
       - .:/form3
     working_dir: /form3
     command: >
-      bash -c "make test && tail -f /dev/null"
+      bash -c "make test && go install golang.org/x/tools/cmd/godoc@latest && make generate_docs"
     depends_on:
       - accountapi
+    ports:
+      - 6060:6060
 
   accountapi:
     image: form3tech/interview-accountapi:v1.0.0-46-gb3b6c766
