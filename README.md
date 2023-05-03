@@ -70,18 +70,17 @@ account, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-494552d11212")
 
 ## Delete an account
 ```
-// Delete takes the account id and version as arguements
+// Delete takes the account id and version as arguments
 client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
 ```
 
 ## Observations
   - There is a makefile with a few useful commands available. Check it out! :partying_face:
-  - Documentation is available through godocs.
   - Also added a continuous integration pipeline using GitHub Actions as a bonus.
 
 ## Future work/Limitations
- - More unit could have been written! I gave priority to integration tests.
- - Could not make DumpRequest return an error to cover more logic using an integration test.
+ - More unit tests could have been written! I gave priority to integration tests.
+ - Could not make DumpRequest return an error to cover more logic using automated tests.
 
 # Form3 Take Home Exercise
 
