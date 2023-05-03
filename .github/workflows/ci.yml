@@ -38,5 +38,10 @@ jobs:
             echo "ok"
           fi
 
+    - name: Lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.52.2
+
     - name: Test
       run: go test -race -shuffle=on -parallel 16 -v ./... -tags=unit
