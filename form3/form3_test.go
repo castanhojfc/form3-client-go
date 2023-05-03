@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/castanhojfc/form3-client-go/form3"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestClient(t *testing.T) {
+func TestForm3_New(t *testing.T) {
 	t.Run("should create new client when no options are provided", func(t *testing.T) {
 		t.Parallel()
 
@@ -138,5 +139,15 @@ func TestClient(t *testing.T) {
 
 		assert.Nil(t, client)
 		assert.Equal(t, "there was a problem parsing the URL: parse \"---\": invalid URI for request", error.Error())
+	})
+}
+
+func TestForm3_PerformRequest(t *testing.T) {
+	t.Run("should return an error when a malformed url is used", func(t *testing.T) {
+		client, _ := form3.New()
+		response, error := form3.PerformRequest(client, "GET", "http://asdf.com/%%", []byte{})
+
+		assert.Nil(t, response)
+		assert.True(t, strings.Contains(error.Error(), "there was a problem creating the request"))
 	})
 }

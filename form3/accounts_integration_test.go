@@ -5,7 +5,9 @@ package form3_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"github.com/castanhojfc/form3-client-go/form3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -43,7 +46,11 @@ func (suite *Form3AccountsTestSuite) SetupTest() {
 
 	suite.databaseConnection = database
 
-	suite.databaseConnection.Exec("DELETE FROM \"public\".\"Account\"")
+	suite.databaseConnection.Session(&gorm.Session{AllowGlobalUpdate: true}).Table("public.Account").Delete("true")
+}
+
+func (suite *Form3AccountsTestSuite) TearDownTest() {
+	suite.databaseConnection.Session(&gorm.Session{AllowGlobalUpdate: true}).Table("public.Account").Delete("true")
 }
 
 type TestCase struct {
@@ -78,9 +85,70 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 				account, _ = client.Accounts.Create(account)
 
-				assert.Equal(t, expected, account)
+				assert.Equal(t, account, expected)
 			})
 		}
+	})
+
+	suite.T().Run("should not create account when there is a problem marshalling the acount", func(t *testing.T) {
+		mockJsonMarshal := new(JsonMarshalMock)
+		mockJsonMarshal.On("Marshal", mock.Anything).Return(nil, fmt.Errorf("marshalling issue"))
+
+		client, _ := form3.New()
+		client.Accounts.JsonMarshal = mockJsonMarshal.Marshal
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account, error := client.Accounts.Create(account)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem marshalling the request body: marshalling issue"))
+		assert.Nil(suite.T(), account)
+		mockJsonMarshal.AssertExpectations(t)
+	})
+
+	suite.T().Run("should not create account when there is a problem perfoming the request", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "asdf",
+		}
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account, error := client.Accounts.Create(account)
+
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.Nil(suite.T(), account)
+	})
+
+	suite.T().Run("should not create account when unmarshalling and there is a reading body problem", func(t *testing.T) {
+		mockReadAll := new(ReadAllMock)
+		mockReadAll.On("ReadAll", mock.Anything).Return(nil, fmt.Errorf("read issue"))
+
+		client, _ := form3.New()
+		client.Accounts.ReadAll = mockReadAll.ReadAll
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+		account, error := client.Accounts.Create(account)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem reading the response body: read issue"))
+		assert.Nil(suite.T(), account)
+		mockReadAll.AssertExpectations(t)
+	})
+
+	suite.T().Run("should not create account when unmarshalling and there is a unmarshalling problem", func(t *testing.T) {
+		mockJsonUnmarshal := new(JsonUnmmarshalMock)
+		mockJsonUnmarshal.On("Unmarshal", mock.Anything, mock.Anything).Return(fmt.Errorf("unmarshal issue"))
+
+		client, _ := form3.New()
+		client.Accounts.JsonUnmarshal = mockJsonUnmarshal.Unmarshal
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+		account, error := client.Accounts.Create(account)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem unmarshalling the response body: unmarshal issue"))
+		assert.Nil(suite.T(), account)
+		mockJsonUnmarshal.AssertExpectations(t)
 	})
 
 	suite.T().Run("should not create account when an account without required information is provided", func(*testing.T) {
@@ -123,6 +191,83 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		assert.Nil(suite.T(), error)
 		assert.NotNil(suite.T(), fetchedAccount)
 	})
+
+	suite.T().Run("should not fetch account when there is a problem perfoming the request", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "asdf",
+		}
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+
+		client.Accounts.Create(account)
+		fetchedAccount, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.Nil(suite.T(), fetchedAccount)
+	})
+
+	suite.T().Run("should not fetch account when the account is does not exist", func(t *testing.T) {
+		client, _ := form3.New()
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "does not exist"))
+		assert.Nil(suite.T(), account)
+	})
+
+	suite.T().Run("should not fetch account when there is a problem perfoming the request", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "asdf",
+		}
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.Nil(suite.T(), account)
+	})
+
+	suite.T().Run("should not fetch account when unmarshalling and there is a reading body problem", func(t *testing.T) {
+		mockReadAll := new(ReadAllMock)
+		mockReadAll.On("ReadAll", mock.Anything).Return(nil, fmt.Errorf("read issue"))
+
+		client, _ := form3.New()
+		client.Accounts.ReadAll = mockReadAll.ReadAll
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+
+		client.Accounts.Create(account)
+		account, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem reading the response body: read issue"))
+		assert.Nil(suite.T(), account)
+		mockReadAll.AssertExpectations(t)
+	})
+
+	suite.T().Run("should not fetch account when unmarshalling and there is a unmarshalling problem", func(t *testing.T) {
+		mockJsonUnmarshal := new(JsonUnmmarshalMock)
+		mockJsonUnmarshal.On("Unmarshal", mock.Anything, mock.Anything).Return(fmt.Errorf("unmarshal issue"))
+
+		client, _ := form3.New()
+		client.Accounts.JsonUnmarshal = mockJsonUnmarshal.Unmarshal
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+
+		client.Accounts.Create(account)
+		account, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem unmarshalling the response body: unmarshal issue"))
+		assert.Nil(suite.T(), account)
+		mockJsonUnmarshal.AssertExpectations(t)
+	})
 }
 
 func (suite *Form3AccountsTestSuite) Test_Delete() {
@@ -140,6 +285,33 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 
 		assert.Nil(suite.T(), error)
 		assert.Nil(suite.T(), fetchedAccount)
+	})
+
+	suite.T().Run("should not delete account when there is a problem performing the request", func(*testing.T) {
+		client, _ := form3.New()
+
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "asdf",
+		}
+
+		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = uuid.New().String()
+
+		client.Accounts.Create(account)
+		error := client.Accounts.Delete(account.Data.ID, 0)
+		fetchedAccount, _ := client.Accounts.Fetch(account.Data.ID)
+
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.Nil(suite.T(), fetchedAccount)
+	})
+
+	suite.T().Run("should not delete account when there the account is not existent", func(t *testing.T) {
+		client, _ := form3.New()
+
+		error := client.Accounts.Delete("5faad046-ca12-475b-be4e-425c9668d3ab", 0)
+
+		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "could not perform operation, Response: HTTP/1.1 404 Not Found"))
 	})
 }
 
@@ -162,4 +334,34 @@ func accountFromJson(t *testing.T, fileName string) *form3.Account {
 	json.Unmarshal(fileBytes, &account)
 
 	return account
+}
+
+type JsonMarshalMock struct {
+	mock.Mock
+}
+
+func (m *JsonMarshalMock) Marshal(v any) ([]byte, error) {
+	args := m.Called(v)
+
+	return []byte{}, args.Error(1)
+}
+
+type JsonUnmmarshalMock struct {
+	mock.Mock
+}
+
+func (m *JsonUnmmarshalMock) Unmarshal(data []byte, v any) error {
+	args := m.Called(data, v)
+
+	return args.Error(0)
+}
+
+type ReadAllMock struct {
+	mock.Mock
+}
+
+func (m *ReadAllMock) ReadAll(r io.Reader) ([]byte, error) {
+	args := m.Called(r)
+
+	return []byte{}, args.Error(1)
 }

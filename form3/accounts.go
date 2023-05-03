@@ -1,7 +1,6 @@
 package form3
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,8 +8,15 @@ import (
 
 const resourceUri string = "/v1/organisation/accounts"
 
+type JsonMarshal func(v any) ([]byte, error)
+type JsonUnmarshal func(data []byte, v any) error
+type ReadAll func(r io.Reader) ([]byte, error)
+
 type AccountService struct {
-	client *Client
+	Client        *Client
+	JsonMarshal   JsonMarshal
+	JsonUnmarshal JsonUnmarshal
+	ReadAll       ReadAll
 }
 
 type Account struct {
@@ -44,15 +50,15 @@ type AccountAttributes struct {
 }
 
 func (s *AccountService) Create(account *Account) (*Account, error) {
-	requestURL := fmt.Sprintf("%s%s", s.client.BaseUrl, resourceUri)
+	requestURL := fmt.Sprintf("%s%s", s.Client.BaseUrl, resourceUri)
 
-	body, error := marshal(account)
+	body, error := s.marshal(account)
 
 	if error != nil {
 		return nil, error
 	}
 
-	response, error := performRequest(s.client, http.MethodPost, requestURL, body)
+	response, error := PerformRequest(s.Client, http.MethodPost, requestURL, body)
 
 	if error != nil {
 		return nil, error
@@ -61,16 +67,16 @@ func (s *AccountService) Create(account *Account) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		return nil, buildUnsuccessfulResponse(response)
+		return nil, BuildUnsuccessfulResponse(response)
 	}
 
-	return unmarshal(response)
+	return s.unmarshal(response)
 }
 
 func (s *AccountService) Fetch(accountId string) (*Account, error) {
-	requestURL := fmt.Sprintf("%s%s/%s", s.client.BaseUrl, resourceUri, accountId)
+	requestURL := fmt.Sprintf("%s%s/%s", s.Client.BaseUrl, resourceUri, accountId)
 
-	response, error := performRequest(s.client, http.MethodGet, requestURL, nil)
+	response, error := PerformRequest(s.Client, http.MethodGet, requestURL, nil)
 
 	if error != nil {
 		return nil, error
@@ -79,16 +85,16 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, buildUnsuccessfulResponse(response)
+		return nil, BuildUnsuccessfulResponse(response)
 	}
 
-	return unmarshal(response)
+	return s.unmarshal(response)
 }
 
 func (s *AccountService) Delete(accountId string, version int64) error {
-	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.client.BaseUrl, resourceUri, accountId, version)
+	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
 
-	response, error := performRequest(s.client, http.MethodDelete, requestURL, nil)
+	response, error := PerformRequest(s.Client, http.MethodDelete, requestURL, nil)
 
 	if error != nil {
 		return fmt.Errorf("there was a problem performing the request: %w", error)
@@ -97,14 +103,14 @@ func (s *AccountService) Delete(accountId string, version int64) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusNoContent {
-		return buildUnsuccessfulResponse(response)
+		return BuildUnsuccessfulResponse(response)
 	}
 
 	return nil
 }
 
-func marshal(account *Account) ([]byte, error) {
-	body, error := json.Marshal(&account)
+func (s *AccountService) marshal(account *Account) ([]byte, error) {
+	body, error := s.JsonMarshal(&account)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem marshalling the request body: %w", error)
@@ -113,15 +119,15 @@ func marshal(account *Account) ([]byte, error) {
 	return body, nil
 }
 
-func unmarshal(response *http.Response) (*Account, error) {
+func (s *AccountService) unmarshal(response *http.Response) (*Account, error) {
 	account := &Account{}
-	data, error := io.ReadAll(response.Body)
+	data, error := s.ReadAll(response.Body)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem reading the response body: %w", error)
 	}
 
-	error = json.Unmarshal(data, &account)
+	error = s.JsonUnmarshal(data, &account)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)

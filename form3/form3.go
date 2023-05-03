@@ -2,6 +2,7 @@ package form3
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,7 +50,7 @@ func New(options ...Option) (*Client, error) {
 		return nil, fmt.Errorf("it was not possible to extract a scheme and a host from the provided URL: %s", client.BaseUrl)
 	}
 
-	client.Accounts = &AccountService{client: client}
+	client.Accounts = &AccountService{Client: client, JsonMarshal: json.Marshal, JsonUnmarshal: json.Unmarshal, ReadAll: io.ReadAll}
 
 	return client, nil
 }
@@ -66,7 +67,7 @@ func WithHttpClient(httpClient *http.Client) Option {
 	}
 }
 
-func performRequest(c *Client, method string, requestURL string, body []byte) (*http.Response, error) {
+func PerformRequest(c *Client, method string, requestURL string, body []byte) (*http.Response, error) {
 	var buffer io.ReadWriter
 
 	if body != nil {
@@ -92,12 +93,8 @@ func performRequest(c *Client, method string, requestURL string, body []byte) (*
 	return response, nil
 }
 
-func buildUnsuccessfulResponse(response *http.Response) error {
-	dump, error := httputil.DumpResponse(response, true)
-
-	if error != nil {
-		return fmt.Errorf("it was not possible dump the response for an unsucessful operation: %w", error)
-	}
+func BuildUnsuccessfulResponse(response *http.Response) error {
+	dump, _ := httputil.DumpResponse(response, true)
 
 	return OperationError{
 		Message:  "could not perform operation",
