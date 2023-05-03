@@ -32,7 +32,10 @@ jobs:
           go mod tidy
           STATUS=$(git status --porcelain go.mod go.sum)
           if [ ! -z "$STATUS" ]; then
+            echo "go.mod does not match source code in the module"
             exit 1
+          else
+            echo "ok"
           fi
 
     - name: Test
