@@ -3,6 +3,7 @@ package form3
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -114,7 +115,13 @@ func marshal(account *Account) ([]byte, error) {
 
 func unmarshal(response *http.Response) (*Account, error) {
 	account := &Account{}
-	error := json.NewDecoder(response.Body).Decode(&account)
+	data, error := io.ReadAll(response.Body)
+
+	if error != nil {
+		return nil, fmt.Errorf("there was a problem reading the response body: %w", error)
+	}
+
+	error = json.Unmarshal(data, &account)
 
 	if error != nil {
 		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)
