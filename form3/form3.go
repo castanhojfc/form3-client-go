@@ -101,6 +101,6 @@ func buildUnsuccessfulResponse(response *http.Response) error {
 
 	return OperationError{
 		Message:  "could not perform operation",
-		Response: dump,
+		Response: string(dump),
 	}
 }

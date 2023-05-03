@@ -6,7 +6,7 @@ import (
 
 type OperationError struct {
 	Message  string
-	Response []byte
+	Response string
 }
 
 func (e OperationError) Error() string {
