@@ -53,5 +53,9 @@ jobs:
       with:
         version: v1.52.2
 
-    - name: Test
+    - name: Unit Test
       run: go test -race -shuffle=on -parallel 16 -v ./... -tags=unit
+
+    - name: Integration Test
+      uses: isbang/compose-action@v1.4.1
+      run: go test -race -shuffle=on -parallel 16 -v ./... -tags=integration
