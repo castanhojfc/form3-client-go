@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/castanhojfc/form3-client-go/form3"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -46,10 +45,6 @@ func (suite *Form3AccountsTestSuite) SetupTest() {
 
 	suite.databaseConnection = database
 
-	suite.databaseConnection.Session(&gorm.Session{AllowGlobalUpdate: true}).Table("public.Account").Delete("true")
-}
-
-func (suite *Form3AccountsTestSuite) TearDownTest() {
 	suite.databaseConnection.Session(&gorm.Session{AllowGlobalUpdate: true}).Table("public.Account").Delete("true")
 }
 
@@ -98,6 +93,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client.Accounts.JsonMarshal = mockJsonMarshal.Marshal
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "d3f29952-ab3b-4dc3-bc1e-adbb6e1ff98e"
 		account, error := client.Accounts.Create(account)
 
 		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem marshalling the request body: marshalling issue"))
@@ -113,6 +109,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		}
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "0027c3aa-3aa4-4306-9efa-4b8472d875c1"
 		account, error := client.Accounts.Create(account)
 
 		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
@@ -127,7 +124,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client.Accounts.ReadAll = mockReadAll.ReadAll
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "8a3f59a4-7d55-400b-b561-1eb6b68ad8fa"
 		account, error := client.Accounts.Create(account)
 
 		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem reading the response body: read issue"))
@@ -143,7 +140,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client.Accounts.JsonUnmarshal = mockJsonUnmarshal.Unmarshal
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "796a9db8-6159-46c8-8f78-9be07c93c24c"
 		account, error := client.Accounts.Create(account)
 
 		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem unmarshalling the response body: unmarshal issue"))
@@ -157,6 +154,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account := accountFromJson(suite.T(), "./fixtures/requests/account_missing_required_data.json")
 
 		client.Accounts.Create(account)
+		account.Data.ID = "c0582554-867d-42d3-a62e-1d64ae9f5b8e"
 		account, error := client.Accounts.Create(account)
 
 		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "organisation_id in body is required"))
@@ -167,6 +165,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "ab7278a5-9c8e-4760-b69a-6f83b73e1b53"
 
 		client.Accounts.Create(account)
 		account, error := client.Accounts.Create(account)
@@ -183,7 +182,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "999a01ef-2695-48f0-b6b6-54c8a30faa3f"
 
 		client.Accounts.Create(account)
 		fetchedAccount, error := client.Accounts.Fetch(account.Data.ID)
@@ -200,7 +199,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		}
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "57238e6f-fc28-4d63-8e31-d901882b104f"
 
 		client.Accounts.Create(account)
 		fetchedAccount, error := client.Accounts.Fetch(account.Data.ID)
@@ -213,6 +212,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client, _ := form3.New()
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "f65b0db1-50b9-4ef3-81b4-1a9442d75d0c"
 		account, error := client.Accounts.Fetch(account.Data.ID)
 
 		assert.True(suite.T(), strings.Contains(error.Error(), "does not exist"))
@@ -227,6 +227,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		}
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "26eeb841-edd5-4d9e-947f-db60f91a7085"
 		account, error := client.Accounts.Fetch(account.Data.ID)
 
 		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
@@ -241,7 +242,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.ReadAll = mockReadAll.ReadAll
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "bf81ac45-3b70-4ec9-946e-ec9d4b651b0d"
 
 		client.Accounts.Create(account)
 		account, error := client.Accounts.Fetch(account.Data.ID)
@@ -259,7 +260,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.JsonUnmarshal = mockJsonUnmarshal.Unmarshal
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "ae8332af-2256-49de-adb7-e1c596430c8e"
 
 		client.Accounts.Create(account)
 		account, error := client.Accounts.Fetch(account.Data.ID)
@@ -277,7 +278,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "cf8a82a8-376f-4572-9cc4-e73578cf99e7"
 
 		client.Accounts.Create(account)
 		error := client.Accounts.Delete(account.Data.ID, 0)
@@ -296,7 +297,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		}
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
-		account.Data.ID = uuid.New().String()
+		account.Data.ID = "b0a7d0e2-ca99-42de-8655-1e4ff0794cb2"
 
 		client.Accounts.Create(account)
 		error := client.Accounts.Delete(account.Data.ID, 0)
