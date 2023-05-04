@@ -83,28 +83,6 @@ jobs:
       with:
         version: v1.52.2
 
-  Unit_Test:
-    strategy:
-      matrix:
-        go-version: [1.20.x]
-        platform: [ubuntu-latest]
-    env:
-      FORM3_ACCOUNT_API_URL: 'http://localhost:8080'
-      TEST_DATABASE_HOST: 'localhost'
-      TEST_DATABASE_USERNAME: 'interview_accountapi_user'
-      TEST_DATABASE_PASSWORD: '123'
-      TEST_DATABASE_NAME: 'interview_accountapi'
-      TEST_DATABASE_PORT: '5432'
-      TEST_DATABASE_SSL_MODE: 'disable'
-
-    runs-on: ${{ matrix.platform }}
-    needs: [Setup]
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Unit Test
-      run: go test -race -shuffle=on -parallel 16 -v ./... -tags=unit
-
   Integration_Test:
     strategy:
       matrix:
@@ -129,29 +107,19 @@ jobs:
       with:
         services: |
           accountapi
-    - name: Integration Test
-      run: go test -race -shuffle=on -parallel 16 -v ./... -tags=integration
-
-  Coverage:
-    strategy:
-      matrix:
-        go-version: [1.20.x]
-        platform: [ubuntu-latest]
-
-    runs-on: ${{ matrix.platform }}
-    needs: [Setup]
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - name: Test
+      run: |
+          go test -race -shuffle=on -parallel 16 -v ./... -tags=unit,integration -coverprofile=coverage.out
     - name: Coverage
       run: |
-        threshold=2
-        totalCoverage=`go tool cover -func=coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
-
-        echo "Current coverage : $totalCoverage %"
-        if (( $(echo "$totalCoverage $threshold | awk '{print ($1 > $2)}') )); then
-            echo "ok"
-        else
-            echo "not ok"
-            exit 1
-        fi
+          go tool cover -html=coverage.out
+          threshold=2
+          totalCoverage=`go tool cover -func=coverage.out | grep total | grep -Eo '[0-9]+\.[0-9]+'`
+          echo "Coverage threshold : $threshold %"
+          echo "Current coverage : $totalCoverage %"
+          if (( $(echo "$totalCoverage $threshold | awk '{print ($1 > $2)}') )); then
+              echo "ok"
+          else
+              echo "not ok"
+              exit 1
+          fi
