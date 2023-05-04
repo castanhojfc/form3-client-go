@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 )
@@ -96,7 +95,7 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 	request, error := http.NewRequest(method, requestURL, buffer)
 
 	if error != nil {
-		return nil, fmt.Errorf("there was a problem creating the request: %w", error)
+		return nil, OperationError{Message: error.Error()}
 	}
 
 	if body != nil {
@@ -106,18 +105,8 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 	response, error := c.HttpClient.Do(request)
 
 	if error != nil {
-		return nil, fmt.Errorf("there was a problem performing the request: %w", error)
+		return nil, OperationError{Message: error.Error()}
 	}
 
 	return response, nil
-}
-
-// BuildUnsuccessfulResponse dumps the http response and creates an error.
-func BuildUnsuccessfulResponse(response *http.Response) error {
-	dump, _ := httputil.DumpResponse(response, true)
-
-	return OperationError{
-		Message:  "could not perform operation",
-		Response: string(dump),
-	}
 }

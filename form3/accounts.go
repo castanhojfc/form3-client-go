@@ -68,37 +68,78 @@ type AccountAttributes struct {
 // Create allows one to create a FORM3 account.
 //
 // More details available in: https://www.api-docs.form3.tech/api/schemes/fps-direct/accounts/accounts/create-an-account
-func (s *AccountService) Create(account *Account) (*Account, error) {
+func (s *AccountService) Create(account *Account) (*Account, *http.Response, error) {
 	requestURL := fmt.Sprintf("%s%s", s.Client.BaseUrl, resourceUri)
 
 	body, error := s.marshal(account)
 
 	if error != nil {
-		return nil, error
+		return nil, nil, error
 	}
 
 	response, error := PerformRequest(s.Client, http.MethodPost, requestURL, body)
 
 	if error != nil {
-		return nil, error
+		return nil, response, error
 	}
-
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		return nil, BuildUnsuccessfulResponse(response)
+		body, error := s.ReadAll(response.Body)
+
+		if error != nil {
+			return nil, response, error
+		}
+
+		return nil, response, OperationError{
+			Message: response.Status,
+			Body:    body,
+		}
 	}
 
-	return s.unmarshal(response)
+	account, error = s.unmarshal(response)
+
+	return account, response, error
 }
 
 // Create allows one to fetch a FORM3 account.
 //
 // More details available in: https://www.api-docs.form3.tech/api/schemes/fps-direct/accounts/accounts/fetch-an-account
-func (s *AccountService) Fetch(accountId string) (*Account, error) {
+func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, error) {
 	requestURL := fmt.Sprintf("%s%s/%s", s.Client.BaseUrl, resourceUri, accountId)
 
 	response, error := PerformRequest(s.Client, http.MethodGet, requestURL, nil)
+
+	if error != nil {
+		return nil, nil, error
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		body, error := s.ReadAll(response.Body)
+
+		if error != nil {
+			return nil, response, error
+		}
+
+		return nil, response, OperationError{
+			Message: response.Status,
+			Body:    body,
+		}
+	}
+
+	account, error := s.unmarshal(response)
+
+	return account, response, error
+}
+
+// Create allows one to delete a FORM3 account.
+//
+// More details available in: https://www.api-docs.form3.tech/api/schemes/fps-direct/accounts/accounts/delete-an-account
+func (s *AccountService) Delete(accountId string, version int64) (*http.Response, error) {
+	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
+
+	response, error := PerformRequest(s.Client, http.MethodDelete, requestURL, nil)
 
 	if error != nil {
 		return nil, error
@@ -106,39 +147,27 @@ func (s *AccountService) Fetch(accountId string) (*Account, error) {
 
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		return nil, BuildUnsuccessfulResponse(response)
-	}
-
-	return s.unmarshal(response)
-}
-
-// Create allows one to delete a FORM3 account.
-//
-// More details available in: https://www.api-docs.form3.tech/api/schemes/fps-direct/accounts/accounts/delete-an-account
-func (s *AccountService) Delete(accountId string, version int64) error {
-	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
-
-	response, error := PerformRequest(s.Client, http.MethodDelete, requestURL, nil)
-
-	if error != nil {
-		return fmt.Errorf("there was a problem performing the request: %w", error)
-	}
-
-	defer response.Body.Close()
-
 	if response.StatusCode != http.StatusNoContent {
-		return BuildUnsuccessfulResponse(response)
+		body, error := s.ReadAll(response.Body)
+
+		if error != nil {
+			return response, error
+		}
+
+		return response, OperationError{
+			Message: response.Status,
+			Body:    body,
+		}
 	}
 
-	return nil
+	return response, nil
 }
 
 func (s *AccountService) marshal(account *Account) ([]byte, error) {
 	body, error := s.JsonMarshal(&account)
 
 	if error != nil {
-		return nil, fmt.Errorf("there was a problem marshalling the request body: %w", error)
+		return nil, OperationError{Message: error.Error()}
 	}
 
 	return body, nil
@@ -149,13 +178,13 @@ func (s *AccountService) unmarshal(response *http.Response) (*Account, error) {
 	data, error := s.ReadAll(response.Body)
 
 	if error != nil {
-		return nil, fmt.Errorf("there was a problem reading the response body: %w", error)
+		return nil, OperationError{Message: error.Error()}
 	}
 
 	error = s.JsonUnmarshal(data, &account)
 
 	if error != nil {
-		return nil, fmt.Errorf("there was a problem unmarshalling the response body: %w", error)
+		return nil, OperationError{Message: error.Error()}
 	}
 
 	return account, error
