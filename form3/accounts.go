@@ -71,10 +71,10 @@ type AccountAttributes struct {
 func (s *AccountService) Create(account *Account) (*Account, *http.Response, error) {
 	requestURL := fmt.Sprintf("%s%s", s.Client.BaseUrl, resourceUri)
 
-	body, error := s.marshal(account)
+	body, error := s.JsonMarshal(account)
 
 	if error != nil {
-		return nil, nil, error
+		return nil, nil, OperationError{Message: error.Error()}
 	}
 
 	response, error := PerformRequest(s.Client, http.MethodPost, requestURL, body)
@@ -83,20 +83,27 @@ func (s *AccountService) Create(account *Account) (*Account, *http.Response, err
 		return nil, response, error
 	}
 
+	defer response.Body.Close()
+
+	body, error = s.ReadAll(response.Body)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
+
 	if response.StatusCode != http.StatusCreated {
-		body, error := s.ReadAll(response.Body)
-
-		if error != nil {
-			return nil, response, error
-		}
-
 		return nil, response, OperationError{
 			Message: response.Status,
 			Body:    body,
 		}
 	}
 
-	account, error = s.unmarshal(response)
+	account = &Account{}
+	error = s.JsonUnmarshal(body, &account)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
 
 	return account, response, error
 }
@@ -115,20 +122,25 @@ func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, erro
 
 	defer response.Body.Close()
 
+	body, error := s.ReadAll(response.Body)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
+
 	if response.StatusCode != http.StatusOK {
-		body, error := s.ReadAll(response.Body)
-
-		if error != nil {
-			return nil, response, error
-		}
-
 		return nil, response, OperationError{
 			Message: response.Status,
 			Body:    body,
 		}
 	}
 
-	account, error := s.unmarshal(response)
+	account := &Account{}
+	error = s.JsonUnmarshal(body, &account)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
 
 	return account, response, error
 }
@@ -151,7 +163,7 @@ func (s *AccountService) Delete(accountId string, version int64) (*http.Response
 		body, error := s.ReadAll(response.Body)
 
 		if error != nil {
-			return response, error
+			return response, OperationError{Message: error.Error()}
 		}
 
 		return response, OperationError{
@@ -161,31 +173,4 @@ func (s *AccountService) Delete(accountId string, version int64) (*http.Response
 	}
 
 	return response, nil
-}
-
-func (s *AccountService) marshal(account *Account) ([]byte, error) {
-	body, error := s.JsonMarshal(&account)
-
-	if error != nil {
-		return nil, OperationError{Message: error.Error()}
-	}
-
-	return body, nil
-}
-
-func (s *AccountService) unmarshal(response *http.Response) (*Account, error) {
-	account := &Account{}
-	data, error := s.ReadAll(response.Body)
-
-	if error != nil {
-		return nil, OperationError{Message: error.Error()}
-	}
-
-	error = s.JsonUnmarshal(data, &account)
-
-	if error != nil {
-		return nil, OperationError{Message: error.Error()}
-	}
-
-	return account, error
 }
