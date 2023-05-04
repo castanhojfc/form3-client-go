@@ -131,7 +131,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account.Data.ID = "8a3f59a4-7d55-400b-b561-1eb6b68ad8fa"
 		account, response, error := client.Accounts.Create(account)
 
-		assert.Equal(suite.T(), error, form3.OperationError{Message: "read issue", Body: nil})
+		assert.Equal(suite.T(), form3.OperationError{Message: "read issue", Body: nil}, error)
 		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockReadAll.AssertExpectations(t)
@@ -148,7 +148,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account.Data.ID = "796a9db8-6159-46c8-8f78-9be07c93c24c"
 		account, response, error := client.Accounts.Create(account)
 
-		assert.Equal(suite.T(), error, form3.OperationError{Message: "unmarshal issue", Body: nil})
+		assert.Equal(suite.T(), form3.OperationError{Message: "unmarshal issue", Body: nil}, error)
 		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockJsonUnmarshal.AssertExpectations(t)
@@ -259,7 +259,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.Create(account)
 		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.Equal(suite.T(), error, form3.OperationError{Message: "read issue", Body: nil})
+		assert.Equal(suite.T(), form3.OperationError{Message: "read issue", Body: nil}, error)
 		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockReadAll.AssertExpectations(t)
@@ -278,7 +278,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.Create(account)
 		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.Equal(suite.T(), error, form3.OperationError{Message: "unmarshal issue", Body: nil})
+		assert.Equal(suite.T(), form3.OperationError{Message: "unmarshal issue", Body: nil}, error)
 		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockJsonUnmarshal.AssertExpectations(t)
@@ -328,6 +328,20 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 
 		assert.Equal(suite.T(), form3.OperationError{Message: "404 Not Found", Body: []byte{}}, error)
 		assert.NotNil(suite.T(), response)
+	})
+
+	suite.T().Run("should not delete account when there is a reading body problem", func(t *testing.T) {
+		mockReadAll := new(ReadAllMock)
+		mockReadAll.On("ReadAll", mock.Anything).Return(nil, fmt.Errorf("read issue"))
+
+		client, _ := form3.New()
+		client.Accounts.ReadAll = mockReadAll.ReadAll
+
+		response, error := client.Accounts.Delete("5fafd046-sd42-475b-be4e-425c5468d3ab", 0)
+
+		assert.Equal(suite.T(), form3.OperationError{Message: "read issue", Body: nil}, error)
+		assert.NotNil(suite.T(), response)
+		mockReadAll.AssertExpectations(t)
 	})
 }
 
