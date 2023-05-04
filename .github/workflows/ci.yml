@@ -26,20 +26,10 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-
     - name: Install Go
       uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
-
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Docker Compose
-      uses: isbang/compose-action@v1.4.1
-      with:
-        services: |
-          accountapi
 
   Tidy:
     strategy:
@@ -50,6 +40,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Tidy
       shell: bash
       run: |
@@ -71,6 +63,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Format
       shell: bash
       run: |
@@ -90,6 +84,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Lint
       uses: golangci/golangci-lint-action@v3
       with:
@@ -104,6 +100,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Unit Test
       run: go test -race -shuffle=on -parallel 16 -v ./... -tags=unit
 
@@ -116,5 +114,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Docker Compose
+      uses: isbang/compose-action@v1.4.1
+      with:
+        services: |
+          accountapi
     - name: Integration Test
       run: go test -race -shuffle=on -parallel 16 -v ./... -tags=integration
