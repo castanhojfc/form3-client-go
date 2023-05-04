@@ -10,14 +10,6 @@ name: CI
 
 jobs:
   Setup:
-    env:
-      FORM3_ACCOUNT_API_URL: 'http://localhost:8080'
-      TEST_DATABASE_HOST: 'localhost'
-      TEST_DATABASE_USERNAME: 'interview_accountapi_user'
-      TEST_DATABASE_PASSWORD: '123'
-      TEST_DATABASE_NAME: 'interview_accountapi'
-      TEST_DATABASE_PORT: '5432'
-      TEST_DATABASE_SSL_MODE: 'disable'
     strategy:
       matrix:
         go-version: [1.20.x]
@@ -96,6 +88,14 @@ jobs:
       matrix:
         go-version: [1.20.x]
         platform: [ubuntu-latest]
+    env:
+      FORM3_ACCOUNT_API_URL: 'http://localhost:8080'
+      TEST_DATABASE_HOST: 'localhost'
+      TEST_DATABASE_USERNAME: 'interview_accountapi_user'
+      TEST_DATABASE_PASSWORD: '123'
+      TEST_DATABASE_NAME: 'interview_accountapi'
+      TEST_DATABASE_PORT: '5432'
+      TEST_DATABASE_SSL_MODE: 'disable'
 
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
@@ -110,6 +110,14 @@ jobs:
       matrix:
         go-version: [1.20.x]
         platform: [ubuntu-latest]
+    env:
+      FORM3_ACCOUNT_API_URL: 'http://localhost:8080'
+      TEST_DATABASE_HOST: 'localhost'
+      TEST_DATABASE_USERNAME: 'interview_accountapi_user'
+      TEST_DATABASE_PASSWORD: '123'
+      TEST_DATABASE_NAME: 'interview_accountapi'
+      TEST_DATABASE_PORT: '5432'
+      TEST_DATABASE_SSL_MODE: 'disable'
 
     runs-on: ${{ matrix.platform }}
     needs: [Setup]
