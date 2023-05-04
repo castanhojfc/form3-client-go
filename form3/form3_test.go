@@ -148,6 +148,6 @@ func TestForm3_PerformRequest(t *testing.T) {
 		response, error := form3.PerformRequest(client, "GET", "http://asdf.com/%%", []byte{})
 
 		assert.Nil(t, response)
-		assert.True(t, strings.Contains(error.Error(), "there was a problem creating the request"))
+		assert.True(t, strings.Contains(error.Error(), "invalid URL escape"))
 	})
 }

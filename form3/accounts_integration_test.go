@@ -78,9 +78,11 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 				account := accountFromJson(t, test.request)
 				expected := accountFromJson(t, test.expected)
 
-				account, _ = client.Accounts.Create(account)
+				account, response, error := client.Accounts.Create(account)
 
 				assert.Equal(t, account, expected)
+				assert.NotNil(t, response)
+				assert.Nil(t, error)
 			})
 		}
 	})
@@ -94,9 +96,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "d3f29952-ab3b-4dc3-bc1e-adbb6e1ff98e"
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem marshalling the request body: marshalling issue"))
+		assert.Equal(suite.T(), error, form3.OperationError{Message: "marshalling issue", Body: nil})
+		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockJsonMarshal.AssertExpectations(t)
 	})
@@ -110,9 +113,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "0027c3aa-3aa4-4306-9efa-4b8472d875c1"
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
 
@@ -125,9 +129,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "8a3f59a4-7d55-400b-b561-1eb6b68ad8fa"
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem reading the response body: read issue"))
+		assert.Equal(suite.T(), error, form3.OperationError{Message: "read issue", Body: nil})
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockReadAll.AssertExpectations(t)
 	})
@@ -141,9 +146,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "796a9db8-6159-46c8-8f78-9be07c93c24c"
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem unmarshalling the response body: unmarshal issue"))
+		assert.Equal(suite.T(), error, form3.OperationError{Message: "unmarshal issue", Body: nil})
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockJsonUnmarshal.AssertExpectations(t)
 	})
@@ -155,9 +161,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 
 		client.Accounts.Create(account)
 		account.Data.ID = "c0582554-867d-42d3-a62e-1d64ae9f5b8e"
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "organisation_id in body is required"))
+		assert.Equal(suite.T(), form3.OperationError{Message: "400 Bad Request", Body: []byte("{\"error_message\":\"validation failure list:\\nvalidation failure list:\\norganisation_id in body is required\"}")}, error)
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
 
@@ -168,9 +175,10 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account.Data.ID = "ab7278a5-9c8e-4760-b69a-6f83b73e1b53"
 
 		client.Accounts.Create(account)
-		account, error := client.Accounts.Create(account)
+		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "Account cannot be created as it violates a duplicate constraint"))
+		assert.Equal(suite.T(), form3.OperationError{Message: "409 Conflict", Body: []byte("{\"error_message\":\"Account cannot be created as it violates a duplicate constraint\"}")}, error)
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
 }
@@ -184,11 +192,12 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "999a01ef-2695-48f0-b6b6-54c8a30faa3f"
 
-		client.Accounts.Create(account)
-		fetchedAccount, error := client.Accounts.Fetch(account.Data.ID)
+		account, _, _ = client.Accounts.Create(account)
+		fetchedAccount, response, error := client.Accounts.Fetch(account.Data.ID)
 
 		assert.Nil(suite.T(), error)
-		assert.NotNil(suite.T(), fetchedAccount)
+		assert.Equal(suite.T(), account, fetchedAccount)
+		assert.NotNil(suite.T(), response)
 	})
 
 	suite.T().Run("should not fetch account when there is a problem perfoming the request", func(t *testing.T) {
@@ -202,9 +211,10 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account.Data.ID = "57238e6f-fc28-4d63-8e31-d901882b104f"
 
 		client.Accounts.Create(account)
-		fetchedAccount, error := client.Accounts.Fetch(account.Data.ID)
+		fetchedAccount, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), fetchedAccount)
 	})
 
@@ -213,9 +223,10 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "f65b0db1-50b9-4ef3-81b4-1a9442d75d0c"
-		account, error := client.Accounts.Fetch(account.Data.ID)
+		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "does not exist"))
+		assert.Equal(suite.T(), form3.OperationError{Message: "404 Not Found", Body: []byte("{\"error_message\":\"record f65b0db1-50b9-4ef3-81b4-1a9442d75d0c does not exist\"}")}, error)
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
 
@@ -228,9 +239,10 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 
 		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
 		account.Data.ID = "26eeb841-edd5-4d9e-947f-db60f91a7085"
-		account, error := client.Accounts.Fetch(account.Data.ID)
+		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
 
@@ -245,9 +257,10 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account.Data.ID = "bf81ac45-3b70-4ec9-946e-ec9d4b651b0d"
 
 		client.Accounts.Create(account)
-		account, error := client.Accounts.Fetch(account.Data.ID)
+		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem reading the response body: read issue"))
+		assert.Equal(suite.T(), error, form3.OperationError{Message: "read issue", Body: nil})
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockReadAll.AssertExpectations(t)
 	})
@@ -263,9 +276,10 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account.Data.ID = "ae8332af-2256-49de-adb7-e1c596430c8e"
 
 		client.Accounts.Create(account)
-		account, error := client.Accounts.Fetch(account.Data.ID)
+		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "there was a problem unmarshalling the response body: unmarshal issue"))
+		assert.Equal(suite.T(), error, form3.OperationError{Message: "unmarshal issue", Body: nil})
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 		mockJsonUnmarshal.AssertExpectations(t)
 	})
@@ -281,10 +295,11 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		account.Data.ID = "cf8a82a8-376f-4572-9cc4-e73578cf99e7"
 
 		client.Accounts.Create(account)
-		error := client.Accounts.Delete(account.Data.ID, 0)
-		fetchedAccount, _ := client.Accounts.Fetch(account.Data.ID)
+		response, error := client.Accounts.Delete(account.Data.ID, 0)
+		fetchedAccount, _, _ := client.Accounts.Fetch(account.Data.ID)
 
 		assert.Nil(suite.T(), error)
+		assert.NotNil(suite.T(), response)
 		assert.Nil(suite.T(), fetchedAccount)
 	})
 
@@ -300,19 +315,19 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		account.Data.ID = "b0a7d0e2-ca99-42de-8655-1e4ff0794cb2"
 
 		client.Accounts.Create(account)
-		error := client.Accounts.Delete(account.Data.ID, 0)
-		fetchedAccount, _ := client.Accounts.Fetch(account.Data.ID)
+		response, error := client.Accounts.Delete(account.Data.ID, 0)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "there was a problem performing the request"))
-		assert.Nil(suite.T(), fetchedAccount)
+		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.Nil(suite.T(), response)
 	})
 
 	suite.T().Run("should not delete account when there the account is not existent", func(t *testing.T) {
 		client, _ := form3.New()
 
-		error := client.Accounts.Delete("5faad046-ca12-475b-be4e-425c9668d3ab", 0)
+		response, error := client.Accounts.Delete("5faad046-ca12-475b-be4e-425c9668d3ab", 0)
 
-		assert.True(suite.T(), strings.Contains(fmt.Sprint(error), "could not perform operation, Response: HTTP/1.1 404 Not Found"))
+		assert.Equal(suite.T(), form3.OperationError{Message: "404 Not Found", Body: []byte{}}, error)
+		assert.NotNil(suite.T(), response)
 	})
 }
 
