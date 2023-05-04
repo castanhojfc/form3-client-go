@@ -1,6 +1,6 @@
 # Hi there 👋 thank you for taking a look at my code!
 
-I'm Francisco Castanho and I am new to golang
+I'm Francisco Castanho and I am new to golang.
 
 # How to run all tests
 
@@ -8,7 +8,9 @@ I'm Francisco Castanho and I am new to golang
 docker-compose up
 ```
 
-Documentation using godocs is generated and available [here](http://localhost:6060/pkg/github.com/castanhojfc/form3-client-go/form3/)
+After they're all executed, package documentation is served using godocs using a web server.
+
+[Checkout this link once the documentation is served](http://localhost:6060/pkg/github.com/castanhojfc/form3-client-go/form3/)
 
 # How to use
 
