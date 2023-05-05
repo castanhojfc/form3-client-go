@@ -8,7 +8,7 @@ type OperationError struct {
 	Body    []byte // Contains the http body if the http request was performed.
 }
 
-// Error returns the message
+// Error returns the message.
 func (e OperationError) Error() string {
 	return e.Message
 }

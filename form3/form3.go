@@ -13,8 +13,10 @@ import (
 	"net/url"
 )
 
-const DefaultUrlScheme = "http"
-const DefaultUrlHost = "accountapi:8080"
+const (
+	DefaultUrlScheme = "http"            // DefaultUrlScheme is the default URL scheme
+	DefaultUrlHost   = "accountapi:8080" // DefaultUrlHost is the default URL host
+)
 
 // Client is used to access API resourses.
 type Client struct {
