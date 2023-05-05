@@ -7,8 +7,10 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/castanhojfc/form3-client-go/form3"
+	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +70,9 @@ func TestForm3_New(t *testing.T) {
 		)
 
 		assert.Nil(t, client)
-		assert.Equal(t, form3.ClientError{Message: "it was not possible to extract a scheme and a host from the provided URL"}, error)
+		expectedErrorMessage := "it was not possible to extract a scheme and a host from the provided URL"
+		assert.Equal(t, form3.ClientError{Message: expectedErrorMessage}, error)
+		assert.Equal(t, expectedErrorMessage, error.Error())
 	})
 
 	t.Run("should create new client with all options provided", func(t *testing.T) {
@@ -97,5 +101,23 @@ func TestForm3_PerformRequest(t *testing.T) {
 
 		assert.Nil(t, response)
 		assert.True(t, strings.Contains(error.Error(), "invalid URL escape"))
+	})
+
+	t.Run("should return an error when a timeout occurs", func(t *testing.T) {
+		t.Parallel()
+
+		defer gock.Off()
+		client, _ := form3.New(form3.WithTimeout(1 * time.Microsecond))
+		defer gock.RestoreClient(client.HttpClient)
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(200).
+			JSON(map[string]string{"parameter": "value"}).Delay(2 * time.Microsecond)
+
+		response, error := form3.PerformRequest(client, "GET", "http://test:8080/endpoint", []byte{})
+
+		assert.Nil(t, response)
+		assert.Equal(t, form3.OperationError{Message: "Get \"http://test:8080/endpoint\": context deadline exceeded", Body: nil}, error)
 	})
 }

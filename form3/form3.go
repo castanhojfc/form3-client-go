@@ -7,21 +7,25 @@ package form3
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 const (
-	DefaultUrlScheme = "http"            // DefaultUrlScheme is the default URL scheme
-	DefaultUrlHost   = "accountapi:8080" // DefaultUrlHost is the default URL host
+	DefaultUrlScheme = "http"            // DefaultUrlScheme is the default URL scheme.
+	DefaultUrlHost   = "accountapi:8080" // DefaultUrlHost is the default URL host.
+	DefaultTimeout   = time.Second * 5   // DefaultTimeout is the default timeout on how much time should be used if no http response is obtained.
 )
 
 // Client is used to access API resourses.
 type Client struct {
-	BaseUrl    *url.URL     // API base URL, can be configured.
-	HttpClient *http.Client // Http client, can be configured.
+	BaseUrl    *url.URL      // API base Url to perform http requests.
+	HttpClient *http.Client  // Http client used to perform http requests.
+	Timeout    time.Duration // How much time should be used if no http response is obtained.
 
 	Accounts *AccountService // Account Service, has access to operations.
 }
@@ -41,6 +45,7 @@ func New(options ...Option) (*Client, error) {
 			Host:   DefaultUrlHost,
 		},
 		HttpClient: http.DefaultClient,
+		Timeout:    DefaultTimeout,
 	}
 
 	for _, option := range options {
@@ -72,6 +77,12 @@ func WithHttpClient(httpClient *http.Client) Option {
 	}
 }
 
+func WithTimeout(timeout time.Duration) Option {
+	return func(client *Client) {
+		client.Timeout = timeout
+	}
+}
+
 // PerformRequest uses a client to perform a http request to the API.
 //
 // An error is returned if there was any problem creating or performing the request.
@@ -82,6 +93,9 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 		buffer = bytes.NewBuffer(body)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
 	request, error := http.NewRequest(method, requestURL, buffer)
 
 	if error != nil {
@@ -91,6 +105,8 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
+
+	request = request.WithContext(ctx)
 
 	response, error := c.HttpClient.Do(request)
 
