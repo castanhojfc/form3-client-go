@@ -61,20 +61,26 @@ account := &form3.Account{
   },
 }
 
-account, error = client.Accounts.Create(account)
+account, response, error = client.Accounts.Create(account)
 ```
 
 ## Fetch an account
 ```
 // Fetch takes the account id as an argument
-account, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-494552d11212")
+account, response, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-494552d11212")
 ```
 
 ## Delete an account
 ```
 // Delete takes the account id and version as arguments
-client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
+response, error := client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
 ```
+
+In all operations, if a HTTP request is successfully made, it is returned
+
+This is so that the caller can inspect exactly what happened even if later on another error occurs
+
+More details in the docs! 📖
 
 ## Observations
   - There is a makefile with a few useful commands available. Check it out! :partying_face:
@@ -82,7 +88,6 @@ client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
 
 ## Future work/Limitations
  - More unit tests could have been written! I gave priority to integration tests.
- - Could not make DumpRequest return an error to cover more logic using automated tests.
 
 # Form3 Take Home Exercise
 
