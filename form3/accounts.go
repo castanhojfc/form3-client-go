@@ -77,15 +77,7 @@ func (s *AccountService) Create(account *Account) (*Account, *http.Response, err
 		return nil, nil, OperationError{Message: error.Error()}
 	}
 
-	response, error := PerformRequest(s.Client, http.MethodPost, requestURL, body)
-
-	if error != nil {
-		return nil, nil, error
-	}
-
-	defer response.Body.Close()
-
-	return s.handleAccountResponse(response, http.StatusCreated)
+	return s.handleAccountResponse(http.MethodPost, requestURL, body, http.StatusCreated)
 }
 
 // Create allows one to fetch a FORM3 account.
@@ -94,15 +86,7 @@ func (s *AccountService) Create(account *Account) (*Account, *http.Response, err
 func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, error) {
 	requestURL := fmt.Sprintf("%s%s/%s", s.Client.BaseUrl, resourceUri, accountId)
 
-	response, error := PerformRequest(s.Client, http.MethodGet, requestURL, nil)
-
-	if error != nil {
-		return nil, nil, error
-	}
-
-	defer response.Body.Close()
-
-	return s.handleAccountResponse(response, http.StatusOK)
+	return s.handleAccountResponse(http.MethodGet, requestURL, nil, http.StatusOK)
 }
 
 // Create allows one to delete a FORM3 account.
@@ -135,8 +119,16 @@ func (s *AccountService) Delete(accountId string, version int64) (*http.Response
 	return response, nil
 }
 
-func (s *AccountService) handleAccountResponse(response *http.Response, successfulStatusCode int) (*Account, *http.Response, error) {
-	body, error := s.ReadAll(response.Body)
+func (s *AccountService) handleAccountResponse(httpMethod string, requestURL string, body []byte, successfulStatusCode int) (*Account, *http.Response, error) {
+	response, error := PerformRequest(s.Client, httpMethod, requestURL, body)
+
+	if error != nil {
+		return nil, nil, error
+	}
+
+	defer response.Body.Close()
+
+	body, error = s.ReadAll(response.Body)
 
 	if error != nil {
 		return nil, response, OperationError{Message: error.Error()}
