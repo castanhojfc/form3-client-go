@@ -115,7 +115,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account.Data.ID = "0027c3aa-3aa4-4306-9efa-4b8472d875c1"
 		account, response, error := client.Accounts.Create(account)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "dial tcp: lookup"))
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
@@ -213,7 +213,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.Create(account)
 		fetchedAccount, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "dial tcp: lookup"))
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), fetchedAccount)
 	})
@@ -241,7 +241,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account.Data.ID = "26eeb841-edd5-4d9e-947f-db60f91a7085"
 		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "dial tcp: lookup"))
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
@@ -317,7 +317,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		client.Accounts.Create(account)
 		response, error := client.Accounts.Delete(account.Data.ID, 0)
 
-		assert.True(suite.T(), strings.Contains(error.Error(), "no such host"))
+		assert.True(suite.T(), strings.Contains(error.Error(), "dial tcp: lookup"))
 		assert.Nil(suite.T(), response)
 	})
 
