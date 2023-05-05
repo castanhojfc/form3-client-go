@@ -108,7 +108,7 @@ jobs:
           accountapi
     - name: Test
       run: |
-          sudo echo "127.0.0.1:8080 accountapi:8080" | sudo tee -a /etc/hosts
+          sudo echo "127.0.0.1 accountapi" | sudo tee -a /etc/hosts
           go test -race -shuffle=on -parallel 16 -v ./... -tags=unit,integration -coverprofile=coverage.out
     - name: Coverage
       run: |
