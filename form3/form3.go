@@ -8,12 +8,13 @@ package form3
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 )
+
+const DefaultUrlScheme = "http"
+const DefaultUrlHost = "accountapi:8080"
 
 // Client is used to access API resourses.
 type Client struct {
@@ -30,12 +31,13 @@ type Option func(c *Client)
 //
 // A set of options can be used to customize it.
 //
-// The base URL is configured using the FORM3_ACCOUNT_API_URL environment variable, if it is configured as an option, the option is honored.
-//
-// An error is returned if there is a problem parsing the base URL provided.
+// An error is returned if there is a problem finding a URL scheme and host.
 func New(options ...Option) (*Client, error) {
 	client := &Client{
-		BaseUrl:    nil,
+		BaseUrl: &url.URL{
+			Scheme: DefaultUrlScheme,
+			Host:   DefaultUrlHost,
+		},
 		HttpClient: http.DefaultClient,
 	}
 
@@ -43,24 +45,10 @@ func New(options ...Option) (*Client, error) {
 		option(client)
 	}
 
-	if client.BaseUrl == nil {
-		rawUrl := os.Getenv("FORM3_ACCOUNT_API_URL")
-
-		if rawUrl == "" {
-			return nil, fmt.Errorf("no base URL was provided, it should be set using environment variable or as an option")
-		}
-
-		parsedUrl, error := url.ParseRequestURI(rawUrl)
-
-		if error != nil {
-			return nil, fmt.Errorf("there was a problem parsing the URL: %w", error)
-		}
-
-		client.BaseUrl = parsedUrl
-	}
-
 	if client.BaseUrl.Scheme == "" || client.BaseUrl.Host == "" {
-		return nil, fmt.Errorf("it was not possible to extract a scheme and a host from the provided URL: %s", client.BaseUrl)
+		return nil, ClientError{
+			Message: "it was not possible to extract a scheme and a host from the provided URL",
+		}
 	}
 
 	client.Accounts = &AccountService{Client: client, JsonMarshal: json.Marshal, JsonUnmarshal: json.Unmarshal, ReadAll: io.ReadAll}

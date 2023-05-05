@@ -1,6 +1,6 @@
 package form3
 
-// OperationError should be used to provide a customized message that is easily consumable by the caller
+// OperationError is used to provide a customized message that is easily consumable by the caller
 //
 // It used while an operation is being executed and an error occurs
 type OperationError struct {
@@ -10,5 +10,15 @@ type OperationError struct {
 
 // Error returns the message
 func (e OperationError) Error() string {
+	return e.Message
+}
+
+// ClientError should be used when there is a problem creating a client
+type ClientError struct {
+	Message string // Contains customized message
+}
+
+// Error returns the message
+func (e ClientError) Error() string {
 	return e.Message
 }

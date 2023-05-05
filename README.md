@@ -14,7 +14,7 @@ After they're all executed, package documentation is served using godocs using a
 
 # How to use
 
-The base URL must be accessible. It should be configured in the environment variable `FORM3_ACCOUNT_API_URL` or as an option.
+The default base URL is `http://accountapi:8080`
 
 ## Import the package
 ```
@@ -33,7 +33,7 @@ url, _ := url.ParseRequestURI("http://asdf:8080")
 httpClient := &http.Client{}
 
 client, error := form3.New(
-  form3.WithBaseUrl(url), // If both the option is provided and the environment variable, the option is honored
+  form3.WithBaseUrl(url),
   form3.WithHttpClient(&http.Client{})
 )
 ```
