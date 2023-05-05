@@ -20,10 +20,10 @@ type ReadAll func(r io.Reader) ([]byte, error)
 
 // AccountService allows access to operations related to accounts.
 type AccountService struct {
-	Client        *Client
-	JsonMarshal   JsonMarshal
-	JsonUnmarshal JsonUnmarshal
-	ReadAll       ReadAll
+	Client        *Client       // Used to access basic request configurations and perform http requests.
+	JsonMarshal   JsonMarshal   // Used to marshal json.
+	JsonUnmarshal JsonUnmarshal // Used to unmarshal json.
+	ReadAll       ReadAll       // Used to read the response body of a http request.
 }
 
 // Represents a FORM3 account.
