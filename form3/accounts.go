@@ -80,32 +80,12 @@ func (s *AccountService) Create(account *Account) (*Account, *http.Response, err
 	response, error := PerformRequest(s.Client, http.MethodPost, requestURL, body)
 
 	if error != nil {
-		return nil, response, error
+		return nil, nil, error
 	}
 
 	defer response.Body.Close()
 
-	body, error = s.ReadAll(response.Body)
-
-	if error != nil {
-		return nil, response, OperationError{Message: error.Error()}
-	}
-
-	if response.StatusCode != http.StatusCreated {
-		return nil, response, OperationError{
-			Message: response.Status,
-			Body:    body,
-		}
-	}
-
-	account = &Account{}
-	error = s.JsonUnmarshal(body, &account)
-
-	if error != nil {
-		return nil, response, OperationError{Message: error.Error()}
-	}
-
-	return account, response, error
+	return s.handleAccountResponse(response, http.StatusCreated)
 }
 
 // Create allows one to fetch a FORM3 account.
@@ -122,27 +102,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, erro
 
 	defer response.Body.Close()
 
-	body, error := s.ReadAll(response.Body)
-
-	if error != nil {
-		return nil, response, OperationError{Message: error.Error()}
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return nil, response, OperationError{
-			Message: response.Status,
-			Body:    body,
-		}
-	}
-
-	account := &Account{}
-	error = s.JsonUnmarshal(body, &account)
-
-	if error != nil {
-		return nil, response, OperationError{Message: error.Error()}
-	}
-
-	return account, response, error
+	return s.handleAccountResponse(response, http.StatusOK)
 }
 
 // Create allows one to delete a FORM3 account.
@@ -173,4 +133,28 @@ func (s *AccountService) Delete(accountId string, version int64) (*http.Response
 	}
 
 	return response, nil
+}
+
+func (s *AccountService) handleAccountResponse(response *http.Response, successfulStatusCode int) (*Account, *http.Response, error) {
+	body, error := s.ReadAll(response.Body)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
+
+	if response.StatusCode != successfulStatusCode {
+		return nil, response, OperationError{
+			Message: response.Status,
+			Body:    body,
+		}
+	}
+
+	account := &Account{}
+	error = s.JsonUnmarshal(body, &account)
+
+	if error != nil {
+		return nil, response, OperationError{Message: error.Error()}
+	}
+
+	return account, response, error
 }
