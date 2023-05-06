@@ -39,6 +39,7 @@ type Client struct {
 	// Non-Configurable
 	HttpRetryJitterRandomSeed rand.Source     // Random seed used to generate jitter between http retry attempts.
 	Accounts                  *AccountService // Account Service, has access to operations.
+	UserAgent                 string          // Allow the server to identify the client.
 }
 
 // Option represents an option that can be externally configured.
@@ -61,6 +62,7 @@ func New(options ...Option) (*Client, error) {
 		HttpTimeUntilNextAttempt:  DefaultHttpTimeUntilNextAttempt,
 		DebugEnabled:              DefaultDebugEnabled,
 		HttpRetryJitterRandomSeed: rand.NewSource(time.Now().UnixNano()),
+		UserAgent:                 "form3-client-go",
 	}
 
 	for _, option := range options {
@@ -144,6 +146,8 @@ func (c *Client) PerformRequest(method string, requestURL string, body []byte) (
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
+
+	request.Header.Set("User-Agent", c.UserAgent)
 
 	request = request.WithContext(ctx)
 
