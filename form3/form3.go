@@ -16,16 +16,16 @@ import (
 )
 
 const (
-	DefaultUrlScheme = "http"            // DefaultUrlScheme is the default URL scheme.
-	DefaultUrlHost   = "accountapi:8080" // DefaultUrlHost is the default URL host.
-	DefaultTimeout   = time.Second * 5   // DefaultTimeout is the default timeout on how much time should be used if no http response is obtained.
+	DefaultUrlScheme   = "http"            // DefaultUrlScheme is the default URL scheme.
+	DefaultUrlHost     = "accountapi:8080" // DefaultUrlHost is the default URL host.
+	DefaultHttpTimeout = time.Second * 5   // DefaultTimeout is the default timeout on how much time should be used if no http response is obtained.
 )
 
 // Client is used to access API resourses.
 type Client struct {
-	BaseUrl    *url.URL      // API base Url to perform http requests.
-	HttpClient *http.Client  // Http client used to perform http requests.
-	Timeout    time.Duration // How much time should be used if no http response is obtained.
+	BaseUrl     *url.URL      // API base Url to perform http requests.
+	HttpClient  *http.Client  // Http client used to perform http requests.
+	HttpTimeout time.Duration // How much time should be used if no http response is obtained.
 
 	Accounts *AccountService // Account Service, has access to operations.
 }
@@ -44,8 +44,8 @@ func New(options ...Option) (*Client, error) {
 			Scheme: DefaultUrlScheme,
 			Host:   DefaultUrlHost,
 		},
-		HttpClient: http.DefaultClient,
-		Timeout:    DefaultTimeout,
+		HttpClient:  http.DefaultClient,
+		HttpTimeout: DefaultHttpTimeout,
 	}
 
 	for _, option := range options {
@@ -77,9 +77,10 @@ func WithHttpClient(httpClient *http.Client) Option {
 	}
 }
 
-func WithTimeout(timeout time.Duration) Option {
+// WithHttpTimeout allows the request to be cancelled if no http response comes from the API after a given duration.
+func WithHttpTimeout(timeout time.Duration) Option {
 	return func(client *Client) {
-		client.Timeout = timeout
+		client.HttpTimeout = timeout
 	}
 }
 
@@ -93,7 +94,7 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 		buffer = bytes.NewBuffer(body)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.HttpTimeout)
 	defer cancel()
 
 	request, error := http.NewRequest(method, requestURL, buffer)

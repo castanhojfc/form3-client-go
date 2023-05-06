@@ -107,7 +107,7 @@ func TestForm3_PerformRequest(t *testing.T) {
 		t.Parallel()
 
 		defer gock.Off()
-		client, _ := form3.New(form3.WithTimeout(1 * time.Microsecond))
+		client, _ := form3.New(form3.WithHttpTimeout(1 * time.Microsecond))
 		defer gock.RestoreClient(client.HttpClient)
 
 		gock.New("http://test:8080").
