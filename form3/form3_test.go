@@ -111,6 +111,7 @@ func TestForm3_PerformRequest(t *testing.T) {
 		client, _ := form3.New(
 			form3.WithHttpTimeout(2*time.Second),
 			form3.WithHttpTimeUntilNextAttempt(1*time.Second),
+			form3.WithDebugEnabled(false),
 		)
 		defer gock.RestoreClient(client.HttpClient)
 

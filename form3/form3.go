@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -27,6 +28,7 @@ const (
 
 // Client is used to access API resourses.
 type Client struct {
+	// Configurable
 	BaseUrl                  *url.URL      // API base Url to perform http requests.
 	HttpClient               *http.Client  // Http client used to perform http requests.
 	HttpTimeout              time.Duration // How much time should be used if no http response is obtained.
@@ -34,7 +36,9 @@ type Client struct {
 	HttpTimeUntilNextAttempt time.Duration // How much time should be spent until the next http retry attempt is done.
 	DebugEnabled             bool          // If debugging messages should be shown.
 
-	Accounts *AccountService // Account Service, has access to operations.
+	// Non-Configurable
+	HttpRetryJitterRandomSeed rand.Source     // Random seed used to generate jitter between http retry attempts.
+	Accounts                  *AccountService // Account Service, has access to operations.
 }
 
 // Option represents an option that can be externally configured.
@@ -51,11 +55,12 @@ func New(options ...Option) (*Client, error) {
 			Scheme: DefaultUrlScheme,
 			Host:   DefaultUrlHost,
 		},
-		HttpClient:               http.DefaultClient,
-		HttpTimeout:              DefaultHttpTimeout,
-		HttpRetryAttempts:        DefaultHttpRetryAttempts,
-		HttpTimeUntilNextAttempt: DefaultHttpTimeUntilNextAttempt,
-		DebugEnabled:             DefaultDebugEnabled,
+		HttpClient:                http.DefaultClient,
+		HttpTimeout:               DefaultHttpTimeout,
+		HttpRetryAttempts:         DefaultHttpRetryAttempts,
+		HttpTimeUntilNextAttempt:  DefaultHttpTimeUntilNextAttempt,
+		DebugEnabled:              DefaultDebugEnabled,
+		HttpRetryJitterRandomSeed: rand.NewSource(time.Now().UnixNano()),
 	}
 
 	for _, option := range options {
@@ -119,6 +124,7 @@ func WithDebugEnabled(debugEnabled bool) Option {
 //
 // An error is returned if there was any problem creating or performing the request.
 // Requests can be retried if possible. The time until the next attempt is doubled but it stays within the http timeout.
+// Some jitter is added between requests.
 func (c *Client) PerformRequest(method string, requestURL string, body []byte) (*http.Response, error) {
 	var buffer io.ReadWriter
 
@@ -166,8 +172,8 @@ func (c *Client) retryRequest(remainingAttempts int, timeUntilNextAttempt time.D
 
 	if error != nil || response.StatusCode >= 500 || response.StatusCode == 429 {
 		if remainingAttempts > 0 {
-			time.Sleep(timeUntilNextAttempt)
-			timeUntilNextAttempt = timeUntilNextAttempt * 2
+			jitter := time.Duration(rand.Int63n(int64(timeUntilNextAttempt))) / 3
+			timeUntilNextAttempt = (timeUntilNextAttempt * 2) + jitter
 
 			// Keep the next attempt within the client timeout
 			if timeUntilNextAttempt > c.HttpTimeout {
@@ -175,10 +181,11 @@ func (c *Client) retryRequest(remainingAttempts int, timeUntilNextAttempt time.D
 			}
 
 			if c.DebugEnabled {
-				log.Printf("Http request failed, retrying in: %v remaining attempts: %d", timeUntilNextAttempt, remainingAttempts)
+				log.Printf("Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", timeUntilNextAttempt, jitter, remainingAttempts)
 			}
 
 			remainingAttempts--
+			time.Sleep(timeUntilNextAttempt)
 
 			return c.retryRequest(remainingAttempts, timeUntilNextAttempt, retriable)
 		}
