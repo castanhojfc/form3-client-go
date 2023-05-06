@@ -97,25 +97,30 @@ func TestForm3_PerformRequest(t *testing.T) {
 		t.Parallel()
 
 		client, _ := form3.New()
-		response, error := form3.PerformRequest(client, "GET", "http://asdf.com/%%", []byte{})
+		response, error := client.PerformRequest("GET", "http://asdf.com/%%", []byte{})
 
 		assert.Nil(t, response)
 		assert.True(t, strings.Contains(error.Error(), "invalid URL escape"))
 	})
 
-	t.Run("should return an error when a timeout occurs", func(t *testing.T) {
+	t.Run("should retry when service unavailable and stay within client http timeout", func(t *testing.T) {
 		t.Parallel()
+		// WARNING: This test is slow on purpose
 
 		defer gock.Off()
-		client, _ := form3.New(form3.WithHttpTimeout(1 * time.Microsecond))
+		client, _ := form3.New(
+			form3.WithHttpTimeout(2*time.Second),
+			form3.WithHttpTimeUntilNextAttempt(1*time.Second),
+		)
 		defer gock.RestoreClient(client.HttpClient)
 
-		gock.New("http://test:8080").
-			Get("/endpoint").
-			Reply(200).
-			JSON(map[string]string{"parameter": "value"}).Delay(2 * time.Microsecond)
+		for i := 0; i <= 5; i++ {
+			gock.New("http://test:8080").
+				Get("/endpoint").
+				Reply(503)
+		}
 
-		response, error := form3.PerformRequest(client, "GET", "http://test:8080/endpoint", []byte{})
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", []byte{})
 
 		assert.Nil(t, response)
 		assert.Equal(t, form3.OperationError{Message: "Get \"http://test:8080/endpoint\": context deadline exceeded", Body: nil}, error)

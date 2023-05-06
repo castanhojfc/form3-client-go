@@ -95,7 +95,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, erro
 func (s *AccountService) Delete(accountId string, version int64) (*http.Response, error) {
 	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
 
-	response, error := PerformRequest(s.Client, http.MethodDelete, requestURL, nil)
+	response, error := s.Client.PerformRequest(http.MethodDelete, requestURL, nil)
 
 	if error != nil {
 		return nil, error
@@ -120,7 +120,7 @@ func (s *AccountService) Delete(accountId string, version int64) (*http.Response
 }
 
 func (s *AccountService) handleAccountResponse(httpMethod string, requestURL string, body []byte, successfulStatusCode int) (*Account, *http.Response, error) {
-	response, error := PerformRequest(s.Client, httpMethod, requestURL, body)
+	response, error := s.Client.PerformRequest(httpMethod, requestURL, body)
 
 	if error != nil {
 		return nil, nil, error

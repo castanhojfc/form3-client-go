@@ -10,22 +10,29 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
 )
 
 const (
-	DefaultUrlScheme   = "http"            // DefaultUrlScheme is the default URL scheme.
-	DefaultUrlHost     = "accountapi:8080" // DefaultUrlHost is the default URL host.
-	DefaultHttpTimeout = time.Second * 5   // DefaultTimeout is the default timeout on how much time should be used if no http response is obtained.
+	DefaultUrlScheme                = "http"            // DefaultUrlScheme is the default URL scheme.
+	DefaultUrlHost                  = "accountapi:8080" // DefaultUrlHost is the default URL host.
+	DefaultHttpTimeout              = time.Second * 60  // DefaultTimeout is the default timeout on how much time should be used if no http response is obtained.
+	DefaultHttpRetryAttempts        = 3                 // DefaultHttpRetryAttempts is the default number of attempts when performing a http request.
+	DefaultHttpTimeUntilNextAttempt = 1 * time.Second   // DefaultHttpTimeUntilNextAttempt is the default time until the next http request attemp is made.
+	DefaultDebugEnabled             = false             // DefaultDebug is the default value to determine if debug messages shall be shown.
 )
 
 // Client is used to access API resourses.
 type Client struct {
-	BaseUrl     *url.URL      // API base Url to perform http requests.
-	HttpClient  *http.Client  // Http client used to perform http requests.
-	HttpTimeout time.Duration // How much time should be used if no http response is obtained.
+	BaseUrl                  *url.URL      // API base Url to perform http requests.
+	HttpClient               *http.Client  // Http client used to perform http requests.
+	HttpTimeout              time.Duration // How much time should be used if no http response is obtained.
+	HttpRetryAttempts        int           // How many attempts shall be made if an http cannot be made but can be retried.
+	HttpTimeUntilNextAttempt time.Duration // How much time should be spent until the next http retry attempt is done.
+	DebugEnabled             bool          // If debugging messages should be shown.
 
 	Accounts *AccountService // Account Service, has access to operations.
 }
@@ -44,8 +51,11 @@ func New(options ...Option) (*Client, error) {
 			Scheme: DefaultUrlScheme,
 			Host:   DefaultUrlHost,
 		},
-		HttpClient:  http.DefaultClient,
-		HttpTimeout: DefaultHttpTimeout,
+		HttpClient:               http.DefaultClient,
+		HttpTimeout:              DefaultHttpTimeout,
+		HttpRetryAttempts:        DefaultHttpRetryAttempts,
+		HttpTimeUntilNextAttempt: DefaultHttpTimeUntilNextAttempt,
+		DebugEnabled:             DefaultDebugEnabled,
 	}
 
 	for _, option := range options {
@@ -84,10 +94,32 @@ func WithHttpTimeout(timeout time.Duration) Option {
 	}
 }
 
+// WithHttpRetryAttempts allows a number of requests to be attempted if it is possible to retry them.
+func WithHttpRetryAttempts(httpRetryAttempts int) Option {
+	return func(client *Client) {
+		client.HttpRetryAttempts = httpRetryAttempts
+	}
+}
+
+// WithHttpTimeUntilNextAttempt allows a duration until the next http retry attempt is made.
+func WithHttpTimeUntilNextAttempt(httpTimeUntilNextAttempt time.Duration) Option {
+	return func(client *Client) {
+		client.HttpTimeUntilNextAttempt = httpTimeUntilNextAttempt
+	}
+}
+
+// WithDebugEnabled allows to show debugging messages to the caller.
+func WithDebugEnabled(debugEnabled bool) Option {
+	return func(client *Client) {
+		client.DebugEnabled = debugEnabled
+	}
+}
+
 // PerformRequest uses a client to perform a http request to the API.
 //
 // An error is returned if there was any problem creating or performing the request.
-func PerformRequest(c *Client, method string, requestURL string, body []byte) (*http.Response, error) {
+// Requests can be retried if possible. The time until the next attempt is doubled but it stays within the http timeout.
+func (c *Client) PerformRequest(method string, requestURL string, body []byte) (*http.Response, error) {
 	var buffer io.ReadWriter
 
 	if body != nil {
@@ -97,10 +129,10 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 	ctx, cancel := context.WithTimeout(context.Background(), c.HttpTimeout)
 	defer cancel()
 
-	request, error := http.NewRequest(method, requestURL, buffer)
+	request, _error := http.NewRequest(method, requestURL, buffer)
 
-	if error != nil {
-		return nil, OperationError{Message: error.Error()}
+	if _error != nil {
+		return nil, OperationError{Message: _error.Error()}
 	}
 
 	if body != nil {
@@ -109,11 +141,48 @@ func PerformRequest(c *Client, method string, requestURL string, body []byte) (*
 
 	request = request.WithContext(ctx)
 
-	response, error := c.HttpClient.Do(request)
+	response, _error := c.retryRequest(c.HttpRetryAttempts, c.HttpTimeUntilNextAttempt, func() (*http.Response, error) {
+		return c.HttpClient.Do(request)
+	})
 
-	if error != nil {
-		return nil, OperationError{Message: error.Error()}
+	if _error != nil {
+		return nil, OperationError{Message: _error.Error()}
 	}
 
 	return response, nil
+}
+
+func (c *Client) retryRequest(remainingAttempts int, timeUntilNextAttempt time.Duration, retriable func() (*http.Response, error)) (*http.Response, error) {
+	response, error := retriable()
+
+	if response == nil {
+		return nil, error
+	}
+
+	// Do not retry on client errors. If the client performed too many requests it is still possible to retry.
+	if response.StatusCode >= 400 && response.StatusCode < 500 && response.StatusCode != 429 {
+		return response, error
+	}
+
+	if error != nil || response.StatusCode >= 500 || response.StatusCode == 429 {
+		if remainingAttempts > 0 {
+			time.Sleep(timeUntilNextAttempt)
+			timeUntilNextAttempt = timeUntilNextAttempt * 2
+
+			// Keep the next attempt within the client timeout
+			if timeUntilNextAttempt > c.HttpTimeout {
+				timeUntilNextAttempt = c.HttpTimeout
+			}
+
+			if c.DebugEnabled {
+				log.Printf("Http request failed, retrying in: %v remaining attempts: %d", timeUntilNextAttempt, remainingAttempts)
+			}
+
+			remainingAttempts--
+
+			return c.retryRequest(remainingAttempts, timeUntilNextAttempt, retriable)
+		}
+	}
+
+	return response, error
 }
