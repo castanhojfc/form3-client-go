@@ -106,7 +106,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	suite.T().Run("should not create account when there is a problem perfoming the request", func(t *testing.T) {
 		client, _ := form3.New()
 		client.BaseUrl = &url.URL{
-			Scheme: "http",
+			Scheme: "asdf",
 			Host:   "asdf",
 		}
 
@@ -114,7 +114,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		account.Data.ID = "0027c3aa-3aa4-4306-9efa-4b8472d875c1"
 		account, response, error := client.Accounts.Create(account)
 
-		assert.Contains(suite.T(), error.Error(), "dial tcp: lookup")
+		assert.Contains(suite.T(), error.Error(), "unsupported protocol scheme")
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
@@ -202,7 +202,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 	suite.T().Run("should not fetch account when there is a problem perfoming the request", func(t *testing.T) {
 		client, _ := form3.New()
 		client.BaseUrl = &url.URL{
-			Scheme: "http",
+			Scheme: "asdf",
 			Host:   "asdf",
 		}
 
@@ -212,7 +212,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		client.Accounts.Create(account)
 		fetchedAccount, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.Contains(suite.T(), error.Error(), "dial tcp: lookup")
+		assert.Contains(suite.T(), error.Error(), "unsupported protocol scheme")
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), fetchedAccount)
 	})
@@ -232,7 +232,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 	suite.T().Run("should not fetch account when there is a problem perfoming the request", func(t *testing.T) {
 		client, _ := form3.New()
 		client.BaseUrl = &url.URL{
-			Scheme: "http",
+			Scheme: "asdf",
 			Host:   "asdf",
 		}
 
@@ -240,7 +240,7 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		account.Data.ID = "26eeb841-edd5-4d9e-947f-db60f91a7085"
 		account, response, error := client.Accounts.Fetch(account.Data.ID)
 
-		assert.Contains(suite.T(), error.Error(), "dial tcp: lookup")
+		assert.Contains(suite.T(), error.Error(), "unsupported protocol scheme")
 		assert.Nil(suite.T(), response)
 		assert.Nil(suite.T(), account)
 	})
@@ -306,7 +306,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		client, _ := form3.New()
 
 		client.BaseUrl = &url.URL{
-			Scheme: "http",
+			Scheme: "asdf",
 			Host:   "asdf",
 		}
 
@@ -316,7 +316,7 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		client.Accounts.Create(account)
 		response, error := client.Accounts.Delete(account.Data.ID, 0)
 
-		assert.Contains(suite.T(), error.Error(), "dial tcp: lookup")
+		assert.Contains(suite.T(), error.Error(), "unsupported protocol scheme")
 		assert.Nil(suite.T(), response)
 	})
 
