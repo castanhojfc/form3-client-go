@@ -2,44 +2,34 @@
 
 I'm Francisco Castanho and I am new to golang.
 
-# How to run all tests
+# How to run all tests 🧪
 
 ```
 docker-compose up
 ```
 
-After they're all executed, package documentation is served using godocs using a web server.
+After they're all executed, package documentation is served using godocs using a web server. 📖
 
 [Checkout this link once the documentation is served](http://localhost:6060/pkg/github.com/castanhojfc/form3-client-go/form3/)
 
-# How to use
+# How to use 🧑‍💻
 
-The default base URL is `http://accountapi:8080`
+The default base URL is `http://accountapi:8080`.
 
-## Import the package
 ```
 import "github.com/castanhojfc/form3-client-go/form3"
-```
 
-## Create a client
-```
-client, error := form3.New()
-```
-
-## (Optional) Configure the client when creating a client
-```
-// It is not needed to provide all options
-url, _ := url.ParseRequestURI("http://asdf:8080")
-httpClient := &http.Client{}
-
+// Create a API client
 client, error := form3.New(
-  form3.WithBaseUrl(url),
-  form3.WithHttpClient(&http.Client{})
+  form3.WithBaseUrl(url.ParseRequestURI("http://asdf:8080")),
+  form3.WithHttpClient(&http.Client{}),
+  form3.WithHttpTimeout(time.Second * 5),
+  form3.WithHttpRetryAttempts(5),
+  form3.WithHttpTimeUntilNextAttempt(2 * time.Second),
+  form3.WithDebugEnabled(true)
 )
-```
 
-## Create an account
-```
+// Build an account object
 account := &form3.Account{
   Data: &form3.AccountData{
     ID:             "47cf8708-3c26-4baa-b3d3-6365996e27c3",
@@ -61,37 +51,36 @@ account := &form3.Account{
   },
 }
 
+// Create an acount
 account, response, error = client.Accounts.Create(account)
-```
 
-## Fetch an account
-```
-// Fetch takes the account id as an argument
+// Fetch an account, takes the account id as an argument
 account, response, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-494552d11212")
-```
 
-## Delete an account
-```
-// Delete takes the account id and version as arguments
+// Delete an account, takes the account id and version as arguments
 response, error := client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
 ```
 
-In all operations, a HTTP request is return if successfully performed
+In all operations, a HTTP request is return if successfully performed.
 
-This is so that the caller can inspect exactly what happened, even if later on another error occurs
+This is so that the caller can inspect exactly what happened, even if later on another error occurs.
+
+The client should be able to handle retries when there's a chance of making a successful request in the future.
+
+The client should be able to handle timeouts and make it self identifiable.
 
 More details in the docs! 📖
 
-## Observations
-  - There is a makefile with a few useful commands available. Check it out! :partying_face:
-  - Also added a continuous integration pipeline using GitHub Actions as a bonus.
-
-## Future work/Limitations
+## Future work/Limitations 🧰
  - More unit tests could have been written! I gave priority to integration tests.
+ - Rate limit headers can be used to make more intelligent retry attempts.
 
-# Form3 Take Home Exercise
+## Bonus 🥳
+  - Also added a continuous integration pipeline using GitHub Actions.
 
-Engineers at Form3 build highly available distributed systems in a microservices environment. Our take home test is designed to evaluate real world activities that are involved with this role. We recognise that this may not be as mentally challenging and may take longer to implement than some algorithmic tests that are often seen in interview exercises. Our approach however helps ensure that you will be working with a team of engineers with the necessary practical skills for the role (as well as a diverse range of technical wizardry). 
+# Form3 Take Home Exercise Original Description
+
+Engineers at Form3 build highly available distributed systems in a microservices environment. Our take home test is designed to evaluate real world activities that are involved with this role. We recognise that this may not be as mentally challenging and may take longer to implement than some algorithmic tests that are often seen in interview exercises. Our approach however helps ensure that you will be working with a team of engineers with the necessary practical skills for the role (as well as a diverse range of technical wizardry).
 
 ## Instructions
 The goal of this exercise is to write a client library in Go to access our fake account API, which is provided as a Docker
