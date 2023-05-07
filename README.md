@@ -12,6 +12,22 @@ After they're all executed, package documentation is served using godocs using a
 
 [Checkout this link once the documentation is served](http://localhost:6060/pkg/github.com/castanhojfc/form3-client-go/form3/)
 
+# Run bare metal 🤘
+
+Once the account API is running via docker compose, one can attach to the container and execute the commands provided by the Makefile.
+
+To run all commands without attaching, just run these commands to make all environment variables available and the api reachable from the host machine:
+
+```
+echo "127.0.0.1 accountapi" | sudo tee -a /etc/hosts
+source local.env
+```
+
+Here are the most important ones:
+- Run all checks `make checks`.
+- Generate a coverage report just run `make generate_report` and open the generated report using a browser. (The coverage is 100% ✅ which is nice, although that does not mean that they are perfect 😆)
+- Generate all documentation and serve it via a web server `make generate_docs`
+
 # How to use 🧑‍💻
 
 The default base URL is `http://accountapi:8080`.
@@ -66,21 +82,20 @@ In all operations, a HTTP request is return if successfully performed.
 
 This is so that the caller can inspect exactly what happened, even if later on another error occurs.
 
-The client should be able to handle retries when there's a chance of making a successful request in the future.
-
-The client should be able to handle timeouts and make it self identifiable.
+The client should be able to handle retries when there's a chance of making a successful request in the future. Additionally it should be able to handle client timeouts and make it self identifiable to the server.
 
 More details in the docs! 📖
 
-## Future work/Limitations 🧰
+## Future work/Limitations 👷
  - More unit tests could have been written! I gave priority to integration tests.
- - Some tests could probably be table driven. I prioritized coverage.
+ - Some tests could probably be table driven. I prioritized coverage and test quality.
  - Rate limit headers can be used to make more intelligent retry attempts.
  - There's no existence of tests checking the fields `created_on` and `modified_on` or even any other response coming from the server that shows a timestamp. This is because I was not able to freeze these dates.
  - I've used gock to mock http requests. Unfortunately it is not possible to run these tests in parallel, there must be a way to achieve this, but I was not able to.
+ - To mock function calls from the standard library I´ve used dependency injection. Some parameters from the client and the account service exist and can be injected just for testing purposes.
 
 ## Bonus 🥳
-  - Also added a continuous integration pipeline using GitHub Actions.
+  - Also added a continuous integration pipeline using GitHub Actions. It is simple, but its something.
 
 # Form3 Take Home Exercise Original Description
 
