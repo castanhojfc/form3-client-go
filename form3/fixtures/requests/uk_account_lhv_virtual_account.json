@@ -1,0 +1,38 @@
+{
+    "data": {
+        "id": "a6c6ab2f-4441-4f64-9dfc-08c0eafd3344",
+        "organisation_id": "7fe45bf8-aadf-49d0-a369-f3be930b0dbf",
+        "type": "accounts",
+        "attributes": {
+            "country": "GB",
+            "base_currency": "GBP",
+            "name": [
+                "James Bond"
+            ],
+            "bank_id": "400305",
+            "bank_id_code": "GBDSC",
+            "bic": "LHVBEE22",
+            "account_classification": "Personal",
+            "private_identification": {
+                "birth_date": "1920-11-11",
+                "birth_country": "GB",
+                "identification": "MI6008",
+                "address": [
+                    "11 Up and Down Street"
+                ],
+                "country": "GB",
+                "city": "London"
+            }
+        },
+        "relationships": {
+            "master_account": {
+                "data": [
+                    {
+                        "type": "accounts",
+                        "id": "47bc493d-59f4-4e4f-a810-07d2c2790bed"
+                    }
+                ]
+            }
+        }
+    }
+}

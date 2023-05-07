@@ -74,6 +74,7 @@ More details in the docs! 📖
 ## Future work/Limitations 🧰
  - More unit tests could have been written! I gave priority to integration tests.
  - Rate limit headers can be used to make more intelligent retry attempts.
+ - There's no existence of tests checking the fields `created_on` and `modified_on` or even any other response coming from the server that shows a timestamp. This is because I was not able to freeze these dates.
 
 ## Bonus 🥳
   - Also added a continuous integration pipeline using GitHub Actions.

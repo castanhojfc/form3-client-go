@@ -70,6 +70,11 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 				request:     "./fixtures/requests/uk_account_without_confirmation_of_payee.json",
 				expected:    "./fixtures/responses/uk_account_without_confirmation_of_payee.json",
 			},
+			{
+				description: "UK account LHV virtual account",
+				request:     "./fixtures/requests/uk_account_lhv_virtual_account.json",
+				expected:    "./fixtures/responses/uk_account_lhv_virtual_account.json",
+			},
 		}
 
 		for _, test := range tests {

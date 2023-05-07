@@ -1,0 +1,25 @@
+{
+    "data": {
+        "attributes": {
+            "account_classification": "Personal",
+            "alternative_names": null,
+            "bank_id": "400305",
+            "bank_id_code": "GBDSC",
+            "base_currency": "GBP",
+            "bic": "LHVBEE22",
+            "country": "GB",
+            "name": [
+                "James Bond"
+            ]
+        },
+        "created_on": "2023-05-07T16:05:16.598Z",
+        "id": "a6c6ab2f-4441-4f64-9dfc-08c0eafd3344",
+        "modified_on": "2023-05-07T16:05:16.598Z",
+        "organisation_id": "7fe45bf8-aadf-49d0-a369-f3be930b0dbf",
+        "type": "accounts",
+        "version": 0
+    },
+    "links": {
+        "self": "/v1/organisation/accounts/a6c6ab2f-4441-4f64-9dfc-08c0eafd3344"
+    }
+}
