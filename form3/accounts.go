@@ -93,7 +93,7 @@ func (s *AccountService) Fetch(accountId string) (*Account, *http.Response, erro
 //
 // More details available in: https://www.api-docs.form3.tech/api/schemes/fps-direct/accounts/accounts/delete-an-account
 func (s *AccountService) Delete(accountId string, version int64) (*http.Response, error) {
-	requestURL := fmt.Sprintf("%s%s/%s/?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
+	requestURL := fmt.Sprintf("%s%s/%s?version=%d", s.Client.BaseUrl, resourceUri, accountId, version)
 
 	response, error := s.Client.PerformRequest(http.MethodDelete, requestURL, nil)
 

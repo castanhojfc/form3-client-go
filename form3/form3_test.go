@@ -251,11 +251,3 @@ func TestForm3_PerformRequest(t *testing.T) {
 		mockLogDebugMessage.AssertNotCalled(t, "LogDebugMessage")
 	})
 }
-
-type LogDebugMessageMock struct {
-	mock.Mock
-}
-
-func (m *LogDebugMessageMock) LogDebugMessage(format string, v ...any) {
-	m.Called(format, v)
-}

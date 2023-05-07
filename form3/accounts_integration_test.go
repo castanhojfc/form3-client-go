@@ -5,13 +5,15 @@ package form3_test
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/castanhojfc/form3-client-go/form3"
+	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -57,6 +59,7 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 	suite.T().Parallel()
 
 	suite.T().Run("should create account when a valid account is provided", func(t *testing.T) {
+
 		client, _ := form3.New()
 
 		tests := []TestCase{
@@ -188,9 +191,9 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 }
 
 func (suite *Form3AccountsTestSuite) Test_Fetch() {
-	suite.T().Parallel()
-
 	suite.T().Run("should fetch an existing account", func(*testing.T) {
+		suite.T().Parallel()
+
 		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
@@ -290,9 +293,9 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 }
 
 func (suite *Form3AccountsTestSuite) Test_Delete() {
-	suite.T().Parallel()
-
 	suite.T().Run("should delete account when the account exists", func(*testing.T) {
+		suite.T().Parallel()
+
 		client, _ := form3.New()
 
 		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
@@ -370,32 +373,133 @@ func accountFromJson(t *testing.T, fileName string) *form3.Account {
 	return account
 }
 
-type JsonMarshalMock struct {
-	mock.Mock
+func TestAccountsWithMocks_Create(t *testing.T) {
+	t.Run("should create the account and retry when the request is not successfully made initially", func(*testing.T) {
+		defer gock.Off()
+		mockLogDebugMessage := new(LogDebugMessageMock)
+		mockLogDebugMessage.On("LogDebugMessage", mock.Anything, mock.Anything).Return()
+
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Second
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 5
+		client.DebugEnabled = true
+		rand.Seed(0)
+
+		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
+
+		for i := 0; i <= 3; i++ {
+			gock.New("http://accountapi:8080").
+				Post("/v1/organisation/accounts").
+				Reply(503)
+		}
+
+		gock.New("http://accountapi:8080").
+			Post("/v1/organisation/accounts").
+			Reply(201).
+			BodyString("{\"data\": {\"id\": \"a6c6ab2f-4441-4f64-9dfc-08c0eafd3344\"}}")
+
+		account := &form3.Account{
+			Data: &form3.AccountData{
+				ID: "a6c6ab2f-4441-4f64-9dfc-08c0eafd3344",
+			},
+		}
+		createdAccount, response, error := client.Accounts.Create(account)
+
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(105168), time.Duration(5168), 5})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(222608), time.Duration(12272), 4})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(450049), time.Duration(4833), 3})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(1005911), time.Duration(105813), 2})
+
+		assert.Nil(t, error)
+		assert.Equal(t, account, createdAccount)
+		assert.NotNil(t, response)
+	})
 }
 
-func (m *JsonMarshalMock) Marshal(v any) ([]byte, error) {
-	args := m.Called(v)
+func TestAccountsWithMocks_Fetch(t *testing.T) {
 
-	return []byte{}, args.Error(1)
+	t.Run("should fetch the account and retry when the request is not successfully made initially", func(*testing.T) {
+		defer gock.Off()
+		mockLogDebugMessage := new(LogDebugMessageMock)
+		mockLogDebugMessage.On("LogDebugMessage", mock.Anything, mock.Anything).Return()
+
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Second
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 5
+		client.DebugEnabled = true
+		rand.Seed(0)
+
+		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
+		accountUuid := "42069a76-37e6-47b4-8756-957a3238676d"
+
+		account := &form3.Account{
+			Data: &form3.AccountData{
+				ID: accountUuid,
+			},
+		}
+
+		for i := 0; i <= 3; i++ {
+			gock.New("http://accountapi:8080").
+				Get(fmt.Sprintf("/v1/organisation/accounts/%s", accountUuid)).
+				Reply(503)
+		}
+
+		gock.New("http://accountapi:8080").
+			Get(fmt.Sprintf("/v1/organisation/accounts/%s", accountUuid)).
+			Reply(200).
+			BodyString(fmt.Sprintf("{\"data\": {\"id\": \"%s\"}}", accountUuid))
+
+		fetchedAccount, response, error := client.Accounts.Fetch(accountUuid)
+
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(105168), time.Duration(5168), 5})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(222608), time.Duration(12272), 4})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(450049), time.Duration(4833), 3})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(1005911), time.Duration(105813), 2})
+
+		assert.Nil(t, error)
+		assert.Equal(t, account, fetchedAccount)
+		assert.NotNil(t, response)
+	})
 }
 
-type JsonUnmmarshalMock struct {
-	mock.Mock
-}
+func TestAccountsWithMocks_Delete(t *testing.T) {
+	t.Run("should delete the account and retry when the request is not successfully made initially", func(*testing.T) {
+		defer gock.Off()
+		mockLogDebugMessage := new(LogDebugMessageMock)
+		mockLogDebugMessage.On("LogDebugMessage", mock.Anything, mock.Anything).Return()
 
-func (m *JsonUnmmarshalMock) Unmarshal(data []byte, v any) error {
-	args := m.Called(data, v)
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Second
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 5
+		client.DebugEnabled = true
+		rand.Seed(0)
 
-	return args.Error(0)
-}
+		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
+		accountUuid := "c0ca9748-06d5-4e7d-a97c-4141a465b26d"
+		version := 0
 
-type ReadAllMock struct {
-	mock.Mock
-}
+		for i := 0; i <= 3; i++ {
+			gock.New("http://accountapi:8080").
+				Delete(fmt.Sprintf("/v1/organisation/accounts/%s", accountUuid)).
+				Reply(503)
+		}
 
-func (m *ReadAllMock) ReadAll(r io.Reader) ([]byte, error) {
-	args := m.Called(r)
+		gock.New("http://accountapi:8080").
+			Delete(fmt.Sprintf("/v1/organisation/accounts/%s", accountUuid)).
+			Reply(204)
 
-	return []byte{}, args.Error(1)
+		response, error := client.Accounts.Delete(accountUuid, int64(version))
+
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(105168), time.Duration(5168), 5})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(222608), time.Duration(12272), 4})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(450049), time.Duration(4833), 3})
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(1005911), time.Duration(105813), 2})
+
+		assert.Nil(t, error)
+		assert.NotNil(t, response)
+		assert.Equal(t, 204, response.StatusCode)
+	})
 }
