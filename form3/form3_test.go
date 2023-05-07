@@ -3,6 +3,7 @@
 package form3_test
 
 import (
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/castanhojfc/form3-client-go/form3"
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestForm3_New(t *testing.T) {
@@ -33,9 +35,8 @@ func TestForm3_New(t *testing.T) {
 		t.Parallel()
 
 		url, _ := url.ParseRequestURI("http://asdf:8080")
-		client, error := form3.New(
-			form3.WithBaseUrl(url),
-		)
+		client, error := form3.New()
+		client.BaseUrl = url
 
 		assert.NotNil(t, client)
 		assert.Nil(t, error)
@@ -47,9 +48,8 @@ func TestForm3_New(t *testing.T) {
 		t.Parallel()
 
 		httpClient := &http.Client{}
-		client, error := form3.New(
-			form3.WithHttpClient(&http.Client{}),
-		)
+		client, error := form3.New()
+		client.HttpClient = &http.Client{}
 
 		assert.NotNil(t, client)
 		assert.Nil(t, error)
@@ -60,30 +60,18 @@ func TestForm3_New(t *testing.T) {
 		assert.Equal(t, httpClient, client.HttpClient)
 	})
 
-	t.Run("should not create client when base url option is malformed", func(t *testing.T) {
-		t.Parallel()
-
-		url, _ := url.ParseRequestURI("httsdf:fd8080")
-
-		client, error := form3.New(
-			form3.WithBaseUrl(url),
-		)
-
-		assert.Nil(t, client)
-		expectedErrorMessage := "it was not possible to extract a scheme and a host from the provided URL"
-		assert.Equal(t, form3.ClientError{Message: expectedErrorMessage}, error)
-		assert.Equal(t, expectedErrorMessage, error.Error())
-	})
-
 	t.Run("should create new client with all options provided", func(t *testing.T) {
 		t.Parallel()
 
 		url, _ := url.ParseRequestURI("http://asdf:8080")
 		httpClient := &http.Client{}
-		client, error := form3.New(
-			form3.WithBaseUrl(url),
-			form3.WithHttpClient(&http.Client{}),
-		)
+		client, error := form3.New()
+		client.BaseUrl = url
+		client.HttpClient = &http.Client{}
+		client.DebugEnabled = true
+		client.HttpRetryAttempts = 4
+		client.HttpTimeUntilNextAttempt = 3 * time.Second
+		client.HttpTimeout = 10 * time.Second
 
 		assert.NotNil(t, client)
 		assert.Nil(t, error)
@@ -104,26 +92,79 @@ func TestForm3_PerformRequest(t *testing.T) {
 	})
 
 	t.Run("should retry when service unavailable and stay within client http timeout", func(t *testing.T) {
-		t.Parallel()
-		// WARNING: This test is slow on purpose
-
 		defer gock.Off()
-		client, _ := form3.New(
-			form3.WithHttpTimeout(2*time.Second),
-			form3.WithHttpTimeUntilNextAttempt(1*time.Second),
-			form3.WithDebugEnabled(false),
-		)
-		defer gock.RestoreClient(client.HttpClient)
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Microsecond
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 100
 
 		for i := 0; i <= 5; i++ {
-			gock.New("http://test:8080").
+			gock.New("http://test_one:8080").
 				Get("/endpoint").
 				Reply(503)
 		}
 
-		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", []byte{})
+		response, error := client.PerformRequest("GET", "http://test_one:8080/endpoint", []byte{})
 
 		assert.Nil(t, response)
-		assert.Equal(t, form3.OperationError{Message: "Get \"http://test:8080/endpoint\": context deadline exceeded", Body: nil}, error)
+		assert.Equal(t, form3.OperationError{Message: "Get \"http://test_one:8080/endpoint\": context deadline exceeded", Body: nil}, error)
 	})
+
+	t.Run("should retry when service unavailable and print debug messages if debug is enabled", func(t *testing.T) {
+		defer gock.Off()
+		mockLogDebugMessage := new(LogDebugMessageMock)
+		mockLogDebugMessage.On("LogDebugMessage", mock.Anything, mock.Anything).Return()
+
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Microsecond
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 1
+		client.DebugEnabled = true
+		rand.Seed(0)
+
+		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
+
+		for i := 0; i <= 3; i++ {
+			gock.New("http://test_two:8080").
+				Get("/endpoint").
+				Reply(503)
+		}
+
+		client.PerformRequest("GET", "http://test_two:8080/endpoint", []byte{})
+
+		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(100000), time.Duration(5168), 1})
+	})
+
+	t.Run("should retry when service unavailable and not print debug messages if debug is disabled", func(t *testing.T) {
+		defer gock.Off()
+		mockLogDebugMessage := new(LogDebugMessageMock)
+		mockLogDebugMessage.On("LogDebugMessage", mock.Anything, mock.Anything).Return()
+
+		client, _ := form3.New()
+		client.HttpTimeout = 100 * time.Microsecond
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 1
+		client.DebugEnabled = false
+		rand.Seed(0)
+
+		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
+
+		for i := 0; i <= 3; i++ {
+			gock.New("http://test_two:8080").
+				Get("/endpoint").
+				Reply(503)
+		}
+
+		client.PerformRequest("GET", "http://test_two:8080/endpoint", []byte{})
+
+		mockLogDebugMessage.AssertNotCalled(t, "LogDebugMessage")
+	})
+}
+
+type LogDebugMessageMock struct {
+	mock.Mock
+}
+
+func (m *LogDebugMessageMock) LogDebugMessage(format string, v ...any) {
+	m.Called(format, v)
 }
