@@ -20,14 +20,15 @@ The default base URL is `http://accountapi:8080`.
 import "github.com/castanhojfc/form3-client-go/form3"
 
 // Create a API client
-client, error := form3.New(
-  form3.WithBaseUrl(url.ParseRequestURI("http://asdf:8080")),
-  form3.WithHttpClient(&http.Client{}),
-  form3.WithHttpTimeout(time.Second * 5),
-  form3.WithHttpRetryAttempts(5),
-  form3.WithHttpTimeUntilNextAttempt(2 * time.Second),
-  form3.WithDebugEnabled(true)
-)
+client, error := form3.New()
+
+// Set options, there are defaults already setup
+client.BaseUrl = url.ParseRequestURI("http://asdf:8080")
+client.HttpClient = &http.Client{}
+client.DebugEnabled = true
+client.HttpRetryAttempts = 4
+client.HttpTimeUntilNextAttempt = 3 * time.Second
+client.HttpTimeout = 10 * time.Second
 
 // Build an account object
 account := &form3.Account{
@@ -73,8 +74,10 @@ More details in the docs! 📖
 
 ## Future work/Limitations 🧰
  - More unit tests could have been written! I gave priority to integration tests.
+ - Some tests could probably be table driven. I prioritized coverage.
  - Rate limit headers can be used to make more intelligent retry attempts.
  - There's no existence of tests checking the fields `created_on` and `modified_on` or even any other response coming from the server that shows a timestamp. This is because I was not able to freeze these dates.
+ - I've used gock to mock http requests. Unfortunately it is not possible to run these tests in parallel, there must be a way to achieve this, but I was not able to.
 
 ## Bonus 🥳
   - Also added a continuous integration pipeline using GitHub Actions.

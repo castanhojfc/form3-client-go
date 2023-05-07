@@ -26,20 +26,21 @@ const (
 	DefaultDebugEnabled             = false             // DefaultDebug is the default value to determine if debug messages shall be shown.
 )
 
+// LogDebugMessage defines the function interface that is used to log debug messages.
+type LogDebugMessage func(format string, v ...any)
+
 // Client is used to access API resourses.
 type Client struct {
-	// Configurable
-	BaseUrl                  *url.URL      // API base Url to perform http requests.
-	HttpClient               *http.Client  // Http client used to perform http requests.
-	HttpTimeout              time.Duration // How much time should be used if no http response is obtained.
-	HttpRetryAttempts        int           // How many attempts shall be made if an http cannot be made but can be retried.
-	HttpTimeUntilNextAttempt time.Duration // How much time should be spent until the next http retry attempt is done.
-	DebugEnabled             bool          // If debugging messages should be shown.
-
-	// Non-Configurable
+	BaseUrl                   *url.URL        // API base Url to perform http requests.
+	HttpClient                *http.Client    // Http client used to perform http requests.
+	HttpTimeout               time.Duration   // How much time should be used if no http response is obtained.
+	HttpRetryAttempts         int             // How many attempts shall be made if an http cannot be made but can be retried.
+	HttpTimeUntilNextAttempt  time.Duration   // How much time should be spent until the next http retry attempt is done.
+	DebugEnabled              bool            // If debugging messages should be shown.
 	HttpRetryJitterRandomSeed rand.Source     // Random seed used to generate jitter between http retry attempts.
 	Accounts                  *AccountService // Account Service, has access to operations.
 	UserAgent                 string          // Allow the server to identify the client.
+	LogDebugMessage           LogDebugMessage // Allow the client to log debug messages.
 }
 
 // Option represents an option that can be externally configured.
@@ -65,61 +66,10 @@ func New(options ...Option) (*Client, error) {
 		UserAgent:                 "form3-client-go",
 	}
 
-	for _, option := range options {
-		option(client)
-	}
-
-	if client.BaseUrl.Scheme == "" || client.BaseUrl.Host == "" {
-		return nil, ClientError{
-			Message: "it was not possible to extract a scheme and a host from the provided URL",
-		}
-	}
-
 	client.Accounts = &AccountService{Client: client, JsonMarshal: json.Marshal, JsonUnmarshal: json.Unmarshal, ReadAll: io.ReadAll}
+	client.LogDebugMessage = log.Printf
 
 	return client, nil
-}
-
-// WithBaseUrl allows the base URL to be configured externally.
-func WithBaseUrl(url *url.URL) Option {
-	return func(client *Client) {
-		client.BaseUrl = url
-	}
-}
-
-// WithHttpClient allows the http client to be configured externally.
-func WithHttpClient(httpClient *http.Client) Option {
-	return func(client *Client) {
-		client.HttpClient = httpClient
-	}
-}
-
-// WithHttpTimeout allows the request to be cancelled if no http response comes from the API after a given duration.
-func WithHttpTimeout(timeout time.Duration) Option {
-	return func(client *Client) {
-		client.HttpTimeout = timeout
-	}
-}
-
-// WithHttpRetryAttempts allows a number of requests to be attempted if it is possible to retry them.
-func WithHttpRetryAttempts(httpRetryAttempts int) Option {
-	return func(client *Client) {
-		client.HttpRetryAttempts = httpRetryAttempts
-	}
-}
-
-// WithHttpTimeUntilNextAttempt allows a duration until the next http retry attempt is made.
-func WithHttpTimeUntilNextAttempt(httpTimeUntilNextAttempt time.Duration) Option {
-	return func(client *Client) {
-		client.HttpTimeUntilNextAttempt = httpTimeUntilNextAttempt
-	}
-}
-
-// WithDebugEnabled allows to show debugging messages to the caller.
-func WithDebugEnabled(debugEnabled bool) Option {
-	return func(client *Client) {
-		client.DebugEnabled = debugEnabled
-	}
 }
 
 // PerformRequest uses a client to perform a http request to the API.
@@ -185,7 +135,7 @@ func (c *Client) retryRequest(remainingAttempts int, timeUntilNextAttempt time.D
 			}
 
 			if c.DebugEnabled {
-				log.Printf("Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", timeUntilNextAttempt, jitter, remainingAttempts)
+				c.LogDebugMessage("DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", timeUntilNextAttempt, jitter, remainingAttempts)
 			}
 
 			remainingAttempts--

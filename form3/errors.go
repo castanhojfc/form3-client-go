@@ -12,13 +12,3 @@ type OperationError struct {
 func (e OperationError) Error() string {
 	return e.Message
 }
-
-// ClientError should be used when there is a problem creating a client.
-type ClientError struct {
-	Message string // Contains customized message.
-}
-
-// Error returns the message.
-func (e ClientError) Error() string {
-	return e.Message
-}
