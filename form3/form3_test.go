@@ -3,6 +3,7 @@
 package form3_test
 
 import (
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -91,6 +92,96 @@ func TestForm3_PerformRequest(t *testing.T) {
 		assert.True(t, strings.Contains(error.Error(), "invalid URL escape"))
 	})
 
+	t.Run("should retry when service unavailable and return the successful response after retries", func(t *testing.T) {
+		defer gock.Off()
+		client, _ := form3.New()
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 100
+
+		for i := 0; i <= 2; i++ {
+			gock.New("http://test:8080").
+				Get("/endpoint").
+				Reply(503)
+		}
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(200).
+			JSON(map[string]string{"outcome": "success"})
+
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", nil)
+
+		assert.Nil(t, error)
+		assert.Equal(t, 200, response.StatusCode)
+		body, _ := ioutil.ReadAll(response.Body)
+		assert.Equal(t, []byte("{\"outcome\":\"success\"}\n"), body)
+	})
+
+	t.Run("do not retry when number of retry attempts is configured to be less than 1", func(t *testing.T) {
+		defer gock.Off()
+		client, _ := form3.New()
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = -666
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(503)
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(200).
+			JSON(map[string]string{"outcome": "success"})
+
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", nil)
+
+		assert.Nil(t, error)
+		assert.Equal(t, 503, response.StatusCode)
+	})
+
+	t.Run("do not retry when the first response contains a client error status code", func(t *testing.T) {
+		defer gock.Off()
+		client, _ := form3.New()
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 100
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(400)
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(200).
+			JSON(map[string]string{"outcome": "success"})
+
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", nil)
+
+		assert.Nil(t, error)
+		assert.Equal(t, 400, response.StatusCode)
+	})
+
+	t.Run("retry when the response contains too many requests client error status code", func(t *testing.T) {
+		defer gock.Off()
+		client, _ := form3.New()
+		client.HttpTimeUntilNextAttempt = 50 * time.Microsecond
+		client.HttpRetryAttempts = 100
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(429)
+
+		gock.New("http://test:8080").
+			Get("/endpoint").
+			Reply(200).
+			JSON(map[string]string{"outcome": "success"})
+
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", nil)
+
+		assert.Nil(t, error)
+		assert.Equal(t, 200, response.StatusCode)
+		body, _ := ioutil.ReadAll(response.Body)
+		assert.Equal(t, []byte("{\"outcome\":\"success\"}\n"), body)
+	})
+
 	t.Run("should retry when service unavailable and stay within client http timeout", func(t *testing.T) {
 		defer gock.Off()
 		client, _ := form3.New()
@@ -99,15 +190,15 @@ func TestForm3_PerformRequest(t *testing.T) {
 		client.HttpRetryAttempts = 100
 
 		for i := 0; i <= 5; i++ {
-			gock.New("http://test_one:8080").
+			gock.New("http://test:8080").
 				Get("/endpoint").
 				Reply(503)
 		}
 
-		response, error := client.PerformRequest("GET", "http://test_one:8080/endpoint", []byte{})
+		response, error := client.PerformRequest("GET", "http://test:8080/endpoint", []byte{})
 
 		assert.Nil(t, response)
-		assert.Equal(t, form3.OperationError{Message: "Get \"http://test_one:8080/endpoint\": context deadline exceeded", Body: nil}, error)
+		assert.Equal(t, form3.OperationError{Message: "Get \"http://test:8080/endpoint\": context deadline exceeded", Body: nil}, error)
 	})
 
 	t.Run("should retry when service unavailable and print debug messages if debug is enabled", func(t *testing.T) {
@@ -125,12 +216,12 @@ func TestForm3_PerformRequest(t *testing.T) {
 		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
 
 		for i := 0; i <= 3; i++ {
-			gock.New("http://test_two:8080").
+			gock.New("http://test:8080").
 				Get("/endpoint").
 				Reply(503)
 		}
 
-		client.PerformRequest("GET", "http://test_two:8080/endpoint", []byte{})
+		client.PerformRequest("GET", "http://test:8080/endpoint", []byte{})
 
 		mockLogDebugMessage.AssertCalled(t, "LogDebugMessage", "DEBUG: Http request failed, retrying in: %v jitter addded: %v remaining attempts: %d", []interface{}{time.Duration(100000), time.Duration(5168), 1})
 	})
@@ -150,12 +241,12 @@ func TestForm3_PerformRequest(t *testing.T) {
 		client.LogDebugMessage = mockLogDebugMessage.LogDebugMessage
 
 		for i := 0; i <= 3; i++ {
-			gock.New("http://test_two:8080").
+			gock.New("http://test:8080").
 				Get("/endpoint").
 				Reply(503)
 		}
 
-		client.PerformRequest("GET", "http://test_two:8080/endpoint", []byte{})
+		client.PerformRequest("GET", "http://test:8080/endpoint", []byte{})
 
 		mockLogDebugMessage.AssertNotCalled(t, "LogDebugMessage")
 	})
