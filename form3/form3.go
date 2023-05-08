@@ -43,15 +43,12 @@ type Client struct {
 	LogDebugMessage           LogDebugMessage // Allow the client to log debug messages.
 }
 
-// Option represents an option that can be externally configured.
-type Option func(c *Client)
-
 // New creates a new client.
 //
 // A set of options can be used to customize it.
 //
 // An error is returned if there is a problem finding a URL scheme and host.
-func New(options ...Option) (*Client, error) {
+func New() (*Client, error) {
 	client := &Client{
 		BaseUrl: &url.URL{
 			Scheme: DefaultUrlScheme,
