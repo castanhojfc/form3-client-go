@@ -127,6 +127,22 @@ func (suite *Form3AccountsTestSuite) Test_Create() {
 		assert.Nil(suite.T(), account)
 	})
 
+	suite.T().Run("should not create account when a malformed url is used", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "/asdf.com/%%",
+		}
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "0027c3aa-3aa4-4306-9efa-4b8472d875c1"
+		account, response, error := client.Accounts.Create(account)
+
+		assert.Contains(suite.T(), error.Error(), "invalid URL escape")
+		assert.Nil(suite.T(), response)
+		assert.Nil(suite.T(), account)
+	})
+
 	suite.T().Run("should not create account when unmarshalling and there is a reading body problem", func(t *testing.T) {
 		mockReadAll := new(ReadAllMock)
 		mockReadAll.On("ReadAll", mock.Anything).Return(nil, fmt.Errorf("read issue"))
@@ -253,6 +269,22 @@ func (suite *Form3AccountsTestSuite) Test_Fetch() {
 		assert.Nil(suite.T(), account)
 	})
 
+	suite.T().Run("should not fetch account when a malformed url is used", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "/asdf.com/%%",
+		}
+
+		var account = accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "26eeb841-edd5-4d9e-947f-db60f91a7085"
+		account, response, error := client.Accounts.Fetch(account.Data.ID)
+
+		assert.Contains(suite.T(), error.Error(), "invalid URL escape")
+		assert.Nil(suite.T(), response)
+		assert.Nil(suite.T(), account)
+	})
+
 	suite.T().Run("should not fetch account when unmarshalling and there is a reading body problem", func(t *testing.T) {
 		mockReadAll := new(ReadAllMock)
 		mockReadAll.On("ReadAll", mock.Anything).Return(nil, fmt.Errorf("read issue"))
@@ -325,6 +357,23 @@ func (suite *Form3AccountsTestSuite) Test_Delete() {
 		response, error := client.Accounts.Delete(account.Data.ID, 0)
 
 		assert.Contains(suite.T(), error.Error(), "unsupported protocol scheme")
+		assert.Nil(suite.T(), response)
+	})
+
+	suite.T().Run("should not delete account when a malformed url is used", func(t *testing.T) {
+		client, _ := form3.New()
+		client.BaseUrl = &url.URL{
+			Scheme: "http",
+			Host:   "/asdf.com/%%",
+		}
+
+		account := accountFromJson(suite.T(), "./fixtures/requests/uk_account_with_confirmation_of_payee.json")
+		account.Data.ID = "b0a7d0e2-ca99-42de-8655-1e4ff0794cb2"
+
+		client.Accounts.Create(account)
+		response, error := client.Accounts.Delete(account.Data.ID, 0)
+
+		assert.Contains(suite.T(), error.Error(), "invalid URL escape")
 		assert.Nil(suite.T(), response)
 	})
 
