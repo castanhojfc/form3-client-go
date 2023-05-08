@@ -78,7 +78,7 @@ account, response, error := client.Accounts.Fetch("5e759a85-e632-4b5d-8232-49455
 response, error := client.Accounts.Delete("5e759a85-e632-4b5d-8232-494552d11212", 0)
 ```
 
-In all operations, a HTTP request is return if successfully performed.
+In all operations, a HTTP request is returned if successfully performed.
 
 This is so that the caller can inspect exactly what happened, even if later on another error occurs.
 
