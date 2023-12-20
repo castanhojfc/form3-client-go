@@ -1,0 +1,11 @@
+{
+    "go.testEnvVars": {
+        "TEST_DATABASE_HOST": "localhost",
+        "TEST_DATABASE_USERNAME": "interview_accountapi_user",
+        "TEST_DATABASE_PASSWORD": "123",
+        "TEST_DATABASE_NAME": "interview_accountapi",
+        "TEST_DATABASE_PORT": "5432",
+        "TEST_DATABASE_SSL_MODE": "disable"
+    },
+    "go.buildTags": "unit,integration"
+}
